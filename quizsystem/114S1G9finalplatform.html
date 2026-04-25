@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>線上測驗平台 | CYIT Quiz System</title>
+    
+    <!-- ★★★ 網站小圖示 (Favicon) ★★★ -->
+    <link rel="icon" href="img/favicon.png" type="image/png">
+    
+    <!-- 引入 React 和 ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- 引入 Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 設定 Tailwind 主題：Cyberpunk Neon 風格 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        base: { 900: '#090014', 800: '#1a0b2e', 700: '#2d1b4e' },
+                        primary: { 400: '#f472b6', 500: '#ec4899', 600: '#db2777' },
+                        accent: { 400: '#a78bfa', 500: '#8b5cf6', 600: '#7c3aed' },
+                        success: { 400: '#34d399', 500: '#10b981' },
+                        danger: { 400: '#f87171', 500: '#ef4444' }
+                    },
+                    animation: {
+                        'pulse-glow': 'pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        'pulse-glow': {
+                            '0%, 100%': { opacity: 1, filter: 'drop-shadow(0 0 5px rgba(236, 72, 153, 0.5))' },
+                            '50%': { opacity: .7, filter: 'drop-shadow(0 0 15px rgba(236, 72, 153, 0.8))' },
+                        },
+                        'float': {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #050505;
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(139, 92, 246, 0.15) 0%, transparent 25%), 
+                radial-gradient(circle at 85% 30%, rgba(236, 72, 153, 0.15) 0%, transparent 25%);
+        }
+
+        .font-tech {
+            font-family: 'Orbitron', sans-serif;
+        }
+        
+        .neon-glass {
+            background: rgba(26, 11, 46, 0.6);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(236, 72, 153, 0.2);
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.1);
+        }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #090014; }
+        ::-webkit-scrollbar-thumb { background: #4c1d95; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #6d28d9; }
+    </style>
+</head>
+<body class="text-gray-200 antialiased selection:bg-primary-500/30 selection:text-primary-100 min-h-screen flex flex-col">
+    <div id="root" class="flex-grow flex flex-col min-h-screen"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        // ★★★ 設定區 ★★★
+        const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRWeFoLXD8kbBzpxlG-np7a8i00hlkdsJbhxbpiXlo-w3bWFCIxw0iTR4caXW0P01l5Z3SoU7nfqiXZ/pub?output=csv"; 
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz99TN19EJp8-9B3Nah3Q4G0Cg1PWeewsIV9H_UbFVUgKP9rt-t_ew_lP95IUbmRPy8Hw/exec";
+
+        // --- Icons ---
+        const Icons = {
+            Zap: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
+            Check: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+            X: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+            Brain: () => <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/></svg>,
+            Trophy: () => <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>,
+            Image: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>,
+            Alert: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>,
+            Save: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>,
+            Refresh: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>,
+            Github: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+        };
+
+        // --- Footer Component ---
+        const Footer = () => (
+            <footer className="mt-auto py-6 border-t border-base-800 bg-base-900/50 backdrop-blur-sm text-center relative z-10 w-full shrink-0">
+                <div className="flex flex-col items-center gap-1">
+                    <p className="text-gray-500 text-sm font-medium tracking-wide">
+                        © 2025 CYIT Classroom | 國中資訊科技
+                    </p>
+                    <div className="flex items-center gap-3 justify-center text-gray-600 text-xs uppercase tracking-wider">
+                        <span>Content: Quiz System</span>
+                        <a 
+                            href="https://clitclassroom.github.io/" 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-gray-500 hover:text-primary-400 transition-all duration-300 transform hover:scale-110 hover:rotate-6"
+                            title="Visit Github"
+                        >
+                           <Icons.Github />
+                        </a>
+                    </div>
+                </div>
+            </footer>
+        );
+
+        const QuizImage = ({ url }) => {
+            const [imgSrc, setImgSrc] = useState(url);
+            const [error, setError] = useState(false);
+
+            useEffect(() => {
+                if (!url) return;
+                let finalUrl = url;
+                const match = url.match(/\/d\/(.*?)\/|\?id=(.*?)(&|$)/);
+                if (match) {
+                    const id = match[1] || match[2];
+                    if (id) finalUrl = `https://drive.google.com/thumbnail?id=${id}&sz=w1000`; 
+                }
+                setImgSrc(finalUrl);
+                setError(false);
+            }, [url]);
+
+            if (error || !url) return null;
+
+            return (
+                <div className="mb-6 rounded-lg overflow-hidden border border-base-700 bg-base-900/50 flex justify-center">
+                    <img 
+                        src={imgSrc} 
+                        alt="Question Reference" 
+                        className="max-h-[300px] w-auto object-contain hover:scale-105 transition-transform duration-500"
+                        onError={() => setError(true)}
+                        referrerPolicy="no-referrer"
+                    />
+                </div>
+            );
+        };
+
+        function App() {
+            const [appState, setAppState] = useState('SETUP');
+            const [userInfo, setUserInfo] = useState({ className: '', seatNumber: '', name: '' });
+            const [questions, setQuestions] = useState([]);
+            const [currentQIndex, setCurrentQIndex] = useState(0);
+            const [score, setScore] = useState(0);
+            const [selectedOption, setSelectedOption] = useState(null);
+            const [showAnswer, setShowAnswer] = useState(false);
+            const [errorMsg, setErrorMsg] = useState('');
+            const [submitStatus, setSubmitStatus] = useState('IDLE');
+
+            // ★★★ 改進的 CSV 解析器 ★★★
+            const parseCSV = (text) => {
+                const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
+                const result = [];
+                
+                const parseLine = (line) => {
+                    const fields = [];
+                    let current = '';
+                    let inQuote = false;
+                    
+                    for (let i = 0; i < line.length; i++) {
+                        const char = line[i];
+                        if (char === '"') {
+                            if (inQuote && line[i + 1] === '"') {
+                                current += '"'; 
+                                i++;
+                            } else {
+                                inQuote = !inQuote;
+                            }
+                        } else if (char === ',' && !inQuote) {
+                            fields.push(current.trim());
+                            current = '';
+                        } else {
+                            current += char;
+                        }
+                    }
+                    fields.push(current.trim());
+                    return fields;
+                };
+
+                for (let i = 1; i < lines.length; i++) {
+                    const cleanParts = parseLine(lines[i]);
+                    
+                    if (cleanParts.length >= 7) {
+                        const q = {
+                            id: cleanParts[0],
+                            question: cleanParts[1], 
+                            options: {
+                                A: cleanParts[2],
+                                B: cleanParts[3],
+                                C: cleanParts[4],
+                                D: cleanParts[5]
+                            },
+                            answer: cleanParts[6]?.toUpperCase().trim(),
+                            hasImage: cleanParts[7] === 'TRUE' || cleanParts[7] === '1' || cleanParts[7] === '是',
+                            imgUrl: cleanParts[9]
+                        };
+                        
+                        if (q.question && q.answer) {
+                            result.push(q);
+                        }
+                    }
+                }
+                return result;
+            };
+
+            const shuffleArray = (array) => {
+                const newArr = [...array];
+                for (let i = newArr.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [newArr[i], newArr[j]] = [newArr[j], newArr[i]];
+                }
+                return newArr;
+            };
+
+            const startQuiz = async () => {
+                if (!userInfo.className || !userInfo.seatNumber || !userInfo.name) {
+                    setErrorMsg("請完整填寫所有欄位");
+                    return;
+                }
+                
+                setAppState('LOADING');
+                setErrorMsg('');
+
+                try {
+                    const res = await fetch(SHEET_CSV_URL);
+                    if (!res.ok) throw new Error("無法讀取題庫");
+                    const text = await res.text();
+                    const allQs = parseCSV(text);
+                    
+                    if (allQs.length === 0) throw new Error("讀取到的題目數為 0，請檢查 CSV 格式");
+
+                    const randomQs = shuffleArray(allQs).slice(0, 25);
+                    setQuestions(randomQs);
+                    setAppState('QUIZ');
+                    setCurrentQIndex(0);
+                    setScore(0);
+                    setSubmitStatus('IDLE');
+                } catch (err) {
+                    console.error(err);
+                    setErrorMsg("題庫載入失敗，請確認網路或連結設定。");
+                    setAppState('SETUP');
+                }
+            };
+
+            const handleAnswer = (optionKey) => {
+                if (showAnswer) return;
+                setSelectedOption(optionKey);
+            };
+
+            const confirmAnswer = () => {
+                if (!selectedOption) return;
+                const currentQ = questions[currentQIndex];
+                if (selectedOption === currentQ.answer) {
+                    setScore(s => s + 1);
+                }
+                setShowAnswer(true);
+            };
+
+            const nextQuestion = () => {
+                if (currentQIndex < questions.length - 1) {
+                    setCurrentQIndex(prev => prev + 1);
+                    setSelectedOption(null);
+                    setShowAnswer(false);
+                } else {
+                    setAppState('RESULT');
+                }
+            };
+
+            const submitScore = async () => {
+                setSubmitStatus('SUBMITTING');
+                const finalScore = score * 4;
+                const payload = {
+                    time: new Date().toISOString(),
+                    className: userInfo.className,
+                    seatNumber: userInfo.seatNumber,
+                    name: userInfo.name,
+                    correctCount: score,
+                    score: finalScore,
+                    accuracy: Math.round((score / questions.length) * 100) + "%"
+                };
+
+                try {
+                    await fetch(SCRIPT_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    setSubmitStatus('SUCCESS');
+                } catch (e) {
+                    console.error(e);
+                    setSubmitStatus('ERROR');
+                }
+            };
+
+            // --- 畫面渲染 ---
+
+            if (appState === 'SETUP') {
+                return (
+                    <div className="flex-grow flex flex-col min-h-screen relative overflow-hidden">
+                        {/* 背景裝飾 (絕對定位，不影響排版) */}
+                        <div className="absolute inset-0 pointer-events-none">
+                             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary-500 to-accent-500 shadow-[0_0_20px_rgba(236,72,153,0.5)]"></div>
+                             <div className="absolute top-20 right-20 w-64 h-64 bg-primary-600/20 rounded-full blur-[80px]"></div>
+                             <div className="absolute bottom-20 left-20 w-64 h-64 bg-accent-600/20 rounded-full blur-[80px]"></div>
+                        </div>
+
+                        {/* 主要內容區 - 使用 flex-grow 佔滿空間並置中 */}
+                        <div className="flex-grow flex items-center justify-center p-4 relative z-10 w-full">
+                            <div className="neon-glass w-full max-w-md p-8 rounded-2xl flex flex-col">
+                                <div className="text-center mb-8">
+                                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-base-800 border border-primary-500/30 mb-4 shadow-[0_0_15px_rgba(236,72,153,0.3)] animate-float">
+                                        <span className="text-primary-400"><Icons.Brain /></span>
+                                    </div>
+                                    {/* 修正：中文標題 */}
+                                    <h1 className="text-3xl font-bold text-white font-tech tracking-wider mb-2 drop-shadow-[0_0_5px_rgba(255,255,255,0.5)]">
+                                        線上測驗平台
+                                    </h1>
+                                    <div className="h-0.5 w-24 bg-gradient-to-r from-transparent via-primary-500 to-transparent mx-auto mb-2"></div>
+                                    <p className="text-primary-300 font-medium tracking-widest text-sm">114上九年級期末考題庫練習</p>
+                                </div>
+
+                                <div className="space-y-5 flex-grow">
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-bold text-accent-300 uppercase tracking-widest ml-1">班級 (Class)</label>
+                                        <input 
+                                            type="text" 
+                                            value={userInfo.className}
+                                            onChange={e => setUserInfo({...userInfo, className: e.target.value})}
+                                            placeholder="例如: 901"
+                                            className="w-full bg-base-900/60 border border-base-700 rounded-lg px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all font-tech tracking-wide"
+                                        />
+                                    </div>
+                                    <div className="flex gap-4">
+                                        <div className="flex-1 space-y-1">
+                                            <label className="text-xs font-bold text-accent-300 uppercase tracking-widest ml-1">座號 (No.)</label>
+                                            <input 
+                                                type="text"
+                                                value={userInfo.seatNumber}
+                                                onChange={e => setUserInfo({...userInfo, seatNumber: e.target.value})}
+                                                placeholder="01"
+                                                className="w-full bg-base-900/60 border border-base-700 rounded-lg px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all font-tech"
+                                            />
+                                        </div>
+                                        <div className="flex-[1.5] space-y-1">
+                                            <label className="text-xs font-bold text-accent-300 uppercase tracking-widest ml-1">姓名 (Name)</label>
+                                            <input 
+                                                type="text"
+                                                value={userInfo.name}
+                                                onChange={e => setUserInfo({...userInfo, name: e.target.value})}
+                                                placeholder="王小明"
+                                                className="w-full bg-base-900/60 border border-base-700 rounded-lg px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {errorMsg && (
+                                        <div className="bg-danger-900/20 border border-danger-500/50 text-danger-300 px-4 py-2 rounded-lg text-sm flex items-center gap-2">
+                                            <Icons.Alert /> {errorMsg}
+                                        </div>
+                                    )}
+
+                                    <button 
+                                        onClick={startQuiz}
+                                        className="w-full bg-gradient-to-r from-primary-600 to-accent-600 hover:from-primary-500 hover:to-accent-500 text-white font-bold py-3.5 rounded-lg shadow-[0_0_20px_rgba(236,72,153,0.3)] hover:shadow-[0_0_30px_rgba(236,72,153,0.5)] transition-all transform hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2 font-tech tracking-widest mt-4"
+                                    >
+                                        <Icons.Zap /> 開始測驗 (START)
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Footer 自然排列在底部，不使用 absolute */}
+                        <Footer />
+                    </div>
+                );
+            }
+
+            if (appState === 'LOADING') {
+                return (
+                    <div className="min-h-screen flex flex-col items-center justify-center bg-base-900 text-primary-400">
+                        <div className="w-16 h-16 border-4 border-primary-900 border-t-primary-500 rounded-full animate-spin mb-4"></div>
+                        <p className="font-tech tracking-widest animate-pulse">資料讀取中 (LOADING DATA...)</p>
+                    </div>
+                );
+            }
+
+            if (appState === 'QUIZ') {
+                const currentQ = questions[currentQIndex];
+                const progress = ((currentQIndex) / questions.length) * 100;
+
+                return (
+                    <div className="flex-grow flex flex-col min-h-screen">
+                        <div className="p-4 md:p-8 max-w-4xl mx-auto flex flex-col w-full flex-grow">
+                            <div className="flex justify-between items-end mb-6 border-b border-base-800 pb-4">
+                                <div>
+                                    <div className="flex items-center gap-2 text-xs font-bold text-accent-400 uppercase tracking-widest mb-1">
+                                        <span className="w-2 h-2 bg-primary-500 rounded-full animate-pulse"></span>
+                                        系統連線正常
+                                    </div>
+                                    <div className="text-gray-400 font-mono text-sm">
+                                        {userInfo.className} - {userInfo.seatNumber} {userInfo.name}
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <div className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">目前得分</div>
+                                    <div className="text-2xl font-tech font-bold text-primary-400 drop-shadow-[0_0_8px_rgba(236,72,153,0.6)]">
+                                        {(score * 4).toString().padStart(3, '0')}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="w-full h-1 bg-base-800 rounded-full mb-8 overflow-hidden">
+                                <div 
+                                    className="h-full bg-gradient-to-r from-accent-500 to-primary-500 transition-all duration-500 shadow-[0_0_10px_rgba(236,72,153,0.5)]"
+                                    style={{ width: `${progress}%` }}
+                                ></div>
+                            </div>
+
+                            <div className="flex-1 neon-glass rounded-2xl p-6 md:p-10 flex flex-col relative overflow-hidden mb-8">
+                                <div className="mb-6">
+                                    <span className="inline-block px-3 py-1 bg-primary-900/30 border border-primary-500/30 text-primary-300 text-xs font-bold rounded-full font-tech tracking-wider mb-4">
+                                        第 {currentQIndex + 1} 題 / 共 {questions.length} 題
+                                    </span>
+                                    
+                                    {(currentQ.hasImage || currentQ.imgUrl) && (
+                                        <QuizImage url={currentQ.imgUrl} />
+                                    )}
+
+                                    <h2 className="text-xl md:text-2xl font-bold text-white leading-relaxed tracking-wide">
+                                        {currentQ.question}
+                                    </h2>
+                                </div>
+
+                                <div className="grid gap-3 flex-1 content-start">
+                                    {['A', 'B', 'C', 'D'].map((optKey) => {
+                                        const optText = currentQ.options[optKey];
+                                        let btnStyle = "border-base-700 bg-base-800/40 text-gray-400 hover:bg-base-700/60 hover:border-gray-500";
+                                        
+                                        if (showAnswer) {
+                                            if (optKey === currentQ.answer) {
+                                                btnStyle = "border-success-500 bg-success-900/20 text-success-400 shadow-[0_0_15px_rgba(16,185,129,0.2)]";
+                                            } else if (optKey === selectedOption) {
+                                                btnStyle = "border-danger-500 bg-danger-900/20 text-danger-400 opacity-60";
+                                            } else {
+                                                btnStyle = "border-base-800 bg-base-900/20 text-gray-600 opacity-40";
+                                            }
+                                        } else {
+                                            if (selectedOption === optKey) {
+                                                btnStyle = "border-primary-500 bg-primary-900/20 text-white shadow-[0_0_15px_rgba(236,72,153,0.3)] scale-[1.01]";
+                                            }
+                                        }
+
+                                        return (
+                                            <button
+                                                key={optKey}
+                                                onClick={() => handleAnswer(optKey)}
+                                                disabled={showAnswer}
+                                                className={`w-full text-left p-4 rounded-xl border-2 transition-all duration-200 flex items-center group relative overflow-hidden ${btnStyle}`}
+                                            >
+                                                <div className={`w-8 h-8 rounded flex items-center justify-center text-sm font-bold mr-4 font-tech border ${
+                                                    selectedOption === optKey || (showAnswer && optKey === currentQ.answer) 
+                                                    ? 'border-current bg-current/10' 
+                                                    : 'border-gray-700 text-gray-600'
+                                                }`}>
+                                                    {optKey}
+                                                </div>
+                                                <div className="text-base font-medium flex-1">{optText}</div>
+                                                {showAnswer && optKey === currentQ.answer && <div className="text-success-400"><Icons.Check /></div>}
+                                                {showAnswer && optKey === selectedOption && optKey !== currentQ.answer && <div className="text-danger-400"><Icons.X /></div>}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+
+                                <div className="mt-8 pt-6 border-t border-base-800 flex justify-end">
+                                    {!showAnswer ? (
+                                        <button
+                                            onClick={confirmAnswer}
+                                            disabled={!selectedOption}
+                                            className={`px-8 py-3 rounded-lg font-bold font-tech tracking-wider transition-all ${
+                                                selectedOption 
+                                                ? "bg-primary-600 hover:bg-primary-500 text-white shadow-[0_0_15px_rgba(236,72,153,0.4)]" 
+                                                : "bg-base-800 text-gray-600 cursor-not-allowed"
+                                            }`}
+                                        >
+                                            確認答案
+                                        </button>
+                                    ) : (
+                                        <button
+                                            onClick={nextQuestion}
+                                            className="px-8 py-3 bg-white text-black hover:bg-gray-200 rounded-lg font-bold font-tech tracking-wider shadow-[0_0_15px_rgba(255,255,255,0.3)] transition-all flex items-center gap-2"
+                                        >
+                                            {currentQIndex < questions.length - 1 ? "下一題" : "查看成績"} <Icons.Zap />
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                        <Footer />
+                    </div>
+                );
+            }
+
+            if (appState === 'RESULT') {
+                const finalScore = score * 4;
+                const accuracy = Math.round((score / questions.length) * 100);
+
+                return (
+                    <div className="flex-grow flex flex-col min-h-screen">
+                        <div className="flex-grow flex flex-col items-center justify-center p-4">
+                            <div className="neon-glass w-full max-w-md rounded-3xl p-1 relative overflow-hidden mb-8">
+                                <div className="bg-base-900/80 rounded-[22px] p-8 text-center relative z-10">
+                                    
+                                    <div className="w-24 h-24 mx-auto bg-gradient-to-br from-yellow-400 to-orange-600 rounded-full flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(251,191,36,0.4)]">
+                                        <span className="text-white"><Icons.Trophy /></span>
+                                    </div>
+
+                                    <h2 className="text-3xl font-bold text-white font-tech mb-2">測驗完成</h2>
+                                    <p className="text-gray-400 mb-8">{userInfo.className} {userInfo.name}</p>
+
+                                    <div className="grid grid-cols-2 gap-4 mb-8">
+                                        <div className="bg-base-800/50 p-4 rounded-2xl border border-base-700 col-span-2">
+                                            <div className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">總分</div>
+                                            <div className="text-4xl font-tech font-bold text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">{finalScore}</div>
+                                        </div>
+                                        <div className="bg-base-800/50 p-4 rounded-2xl border border-base-700">
+                                            <div className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">答對題數</div>
+                                            <div className="text-2xl font-tech font-bold text-primary-400">
+                                                {score} / {questions.length}
+                                            </div>
+                                        </div>
+                                        <div className="bg-base-800/50 p-4 rounded-2xl border border-base-700">
+                                            <div className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">正確率</div>
+                                            <div className={`text-2xl font-tech font-bold ${accuracy >= 60 ? 'text-success-400' : 'text-danger-400'}`}>
+                                                {accuracy}%
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        {submitStatus === 'IDLE' && (
+                                            <button 
+                                                onClick={submitScore}
+                                                className="w-full bg-gradient-to-r from-success-600 to-emerald-600 hover:from-success-500 hover:to-emerald-500 text-white font-bold py-4 rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all flex items-center justify-center gap-2 group"
+                                            >
+                                                <Icons.Save /> 上傳成績
+                                            </button>
+                                        )}
+
+                                        {submitStatus === 'SUBMITTING' && (
+                                            <div className="w-full bg-base-800 text-gray-400 py-4 rounded-xl flex items-center justify-center gap-2">
+                                                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                                                上傳中...
+                                            </div>
+                                        )}
+
+                                        {submitStatus === 'SUCCESS' && (
+                                            <div className="w-full bg-success-900/30 text-success-400 border border-success-500/30 py-4 rounded-xl flex items-center justify-center gap-2 font-bold">
+                                                <Icons.Check /> 上傳成功
+                                            </div>
+                                        )}
+
+                                        {submitStatus === 'ERROR' && (
+                                            <button onClick={submitScore} className="w-full bg-danger-900/30 text-danger-400 border border-danger-500/30 py-4 rounded-xl flex items-center justify-center gap-2 font-bold hover:bg-danger-900/50">
+                                                <Icons.Refresh /> 重試上傳
+                                            </button>
+                                        )}
+
+                                        <button 
+                                            onClick={() => setAppState('SETUP')}
+                                            className="w-full bg-transparent border border-base-700 hover:bg-base-800 text-gray-400 font-bold py-4 rounded-xl transition-all"
+                                        >
+                                            回首頁 (新測驗)
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <Footer />
+                    </div>
+                );
+            }
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
+
+

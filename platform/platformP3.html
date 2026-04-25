@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>數位情報解碼：新興系統平台 | CYIT Classroom</title>
+    <!-- 引入 Font Awesome 用於圖示 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- 引入 Google Fonts: Noto Sans TC -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;500;700;900&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS (用於快速佈局) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'neon-blue': '#00f3ff',
+                        'neon-pink': '#ff00ff',
+                        'neon-green': '#00ff41',
+                        'dark-bg': '#0a0a0a',
+                        'panel-bg': 'rgba(20, 20, 30, 0.8)',
+                    },
+                    fontFamily: {
+                        'sans': ['"Noto Sans TC"', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- ★★★ 網站小圖示 (Favicon) ★★★ -->
+    <link rel="icon" href="img/favicon.png" type="image/png">
+    
+    <style>
+        /* 全域樣式設定 */
+        body {
+            background-color: #050505;
+            color: #e0e0e0;
+            overflow-x: hidden;
+            cursor: none; /* 隱藏預設滑鼠 */
+            background-image: 
+                linear-gradient(rgba(0, 243, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 243, 255, 0.03) 1px, transparent 1px);
+            background-size: 30px 30px;
+        }
+
+        /* 自定義滑鼠游標 */
+        .cursor-dot,
+        .cursor-outline {
+            position: fixed;
+            top: 0;
+            left: 0;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            z-index: 9999;
+            pointer-events: none;
+        }
+
+        .cursor-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #00f3ff;
+            box-shadow: 0 0 10px #00f3ff;
+        }
+
+        .cursor-outline {
+            width: 40px;
+            height: 40px;
+            border: 2px solid rgba(0, 243, 255, 0.5);
+            transition: width 0.2s, height 0.2s, background-color 0.2s;
+        }
+
+        /* 互動時的滑鼠效果 */
+        body.hovering .cursor-outline {
+            width: 60px;
+            height: 60px;
+            background-color: rgba(0, 243, 255, 0.1);
+            border-color: #00f3ff;
+        }
+
+        /* 霓虹文字特效 - 全域標題用 (Header) - 已修正為清晰版 */
+        .neon-title {
+            color: #ffffff; /* 確保文字本體是清晰的白色 */
+            text-shadow: 0 0 8px rgba(0, 243, 255, 0.5); /* 僅保留柔和的背後光暈 */
+        }
+
+        /* 遊戲標題特效 - 清晰冷色系 */
+        .game-title-clean {
+            color: #00f3ff; 
+            text-shadow: 0 0 10px rgba(0, 243, 255, 0.6), 0 0 20px rgba(0, 243, 255, 0.3);
+            letter-spacing: 0.1em;
+        }
+
+        /* 卡片與區塊樣式 */
+        .tech-card {
+            background: rgba(20, 20, 30, 0.6);
+            border: 1px solid rgba(0, 243, 255, 0.2);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .tech-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 2px;
+            background: linear-gradient(90deg, transparent, #00f3ff, transparent);
+            transform: translateX(-100%);
+            transition: transform 0.5s;
+        }
+        .tech-card:hover {
+            transform: translateY(-5px);
+            border-color: #00f3ff;
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.2);
+        }
+        .tech-card:hover::before {
+            transform: translateX(100%);
+        }
+
+        /* 導覽列特效 */
+        .nav-btn {
+            position: relative;
+            overflow: hidden;
+        }
+        .nav-btn::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0; width: 0%; height: 2px;
+            background-color: #00f3ff;
+            transition: width 0.3s;
+        }
+        .nav-btn:hover::after, .nav-btn.active::after {
+            width: 100%;
+        }
+        .nav-btn.active {
+            color: #00f3ff;
+            text-shadow: 0 0 8px rgba(0, 243, 255, 0.6);
+        }
+
+        /* 雲端金字塔圖形 */
+        .pyramid-level {
+            clip-path: polygon(10% 0, 90% 0, 100% 100%, 0% 100%);
+            transition: all 0.3s;
+            cursor: none;
+        }
+        .pyramid-level:hover {
+            filter: brightness(1.3);
+            transform: scale(1.02);
+        }
+
+        /* 遊戲選項 */
+        .quiz-option {
+            cursor: none;
+            transition: all 0.2s;
+        }
+        .quiz-option:hover {
+            background-color: rgba(0, 243, 255, 0.2);
+            border-color: #00f3ff;
+        }
+        .correct {
+            background-color: rgba(0, 255, 65, 0.3) !important;
+            border-color: #00ff41 !important;
+        }
+        .wrong {
+            background-color: rgba(255, 0, 85, 0.3) !important;
+            border-color: #ff0055 !important;
+        }
+
+        /* 隱藏/顯示區塊 */
+        .section-content {
+            display: none;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        .section-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 卷軸美化 */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0a0a0a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #00f3ff;
+        }
+
+        /* 輸入框樣式 */
+        .neon-input {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #00f3ff;
+            color: white;
+            box-shadow: 0 0 5px rgba(0, 243, 255, 0.3);
+        }
+        .neon-input:focus {
+            outline: none;
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.6);
+        }
+    </style>
+</head>
+<body class="font-sans antialiased min-h-screen flex flex-col">
+
+    <!-- 自定義滑鼠 -->
+    <div class="cursor-dot"></div>
+    <div class="cursor-outline"></div>
+
+    <!-- 導覽列 -->
+    <header class="fixed top-0 w-full z-50 bg-black/80 backdrop-blur-md border-b border-white/10">
+        <div class="container mx-auto px-4 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-microchip text-neon-blue text-2xl animate-pulse"></i>
+                <!-- 修正標題特效：移除錯位陰影，改用柔和光暈 -->
+                <h1 class="text-xl font-black tracking-widest neon-title">數位情報解碼 <span class="text-xs font-normal text-gray-400 block sm:inline">| 新興系統平台</span></h1>
+            </div>
+            <nav class="hidden md:flex gap-6">
+                <button onclick="switchTab('home')" class="nav-btn active px-2 py-1 text-sm font-bold tracking-wider hover:text-neon-blue transition-colors" data-target="home">情報中心</button>
+                <button onclick="switchTab('portable')" class="nav-btn px-2 py-1 text-sm font-bold tracking-wider hover:text-neon-blue transition-colors" data-target="portable">可攜式</button>
+                <button onclick="switchTab('cloud')" class="nav-btn px-2 py-1 text-sm font-bold tracking-wider hover:text-neon-blue transition-colors" data-target="cloud">雲端</button>
+                <button onclick="switchTab('embedded')" class="nav-btn px-2 py-1 text-sm font-bold tracking-wider hover:text-neon-blue transition-colors" data-target="embedded">嵌入式</button>
+                <button onclick="switchTab('impact')" class="nav-btn px-2 py-1 text-sm font-bold tracking-wider hover:text-neon-blue transition-colors" data-target="impact">科技衝擊</button>
+                <button onclick="switchTab('game')" class="nav-btn px-2 py-1 text-sm font-bold tracking-wider text-neon-blue hover:text-white transition-colors border border-neon-blue rounded px-4" data-target="game">實戰演練</button>
+            </nav>
+            <!-- 手機版選單按鈕 (簡化版) -->
+            <button class="md:hidden text-white hover-trigger" onclick="document.querySelector('.mobile-menu').classList.toggle('hidden')">
+                <i class="fa-solid fa-bars text-xl"></i>
+            </button>
+        </div>
+        <!-- 手機版選單 -->
+        <div class="mobile-menu hidden md:hidden bg-black border-b border-gray-800 p-4 absolute w-full">
+            <div class="flex flex-col gap-3">
+                <button onclick="switchTab('home')" class="text-left text-gray-300 hover:text-neon-blue">情報中心</button>
+                <button onclick="switchTab('portable')" class="text-left text-gray-300 hover:text-neon-blue">可攜式平台</button>
+                <button onclick="switchTab('cloud')" class="text-left text-gray-300 hover:text-neon-blue">雲端平台</button>
+                <button onclick="switchTab('embedded')" class="text-left text-gray-300 hover:text-neon-blue">嵌入式平台</button>
+                <button onclick="switchTab('impact')" class="text-left text-gray-300 hover:text-neon-blue">科技衝擊</button>
+                <button onclick="switchTab('game')" class="text-left text-neon-blue font-bold">實戰演練</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主要內容區 -->
+    <main class="container mx-auto px-4 pt-24 pb-12 flex-grow relative z-10">
+
+        <!-- 0. 首頁 / 情報中心 -->
+        <section id="home" class="section-content active">
+            <div class="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-8">
+                <div class="relative">
+                    <div class="absolute -inset-1 bg-gradient-to-r from-neon-blue to-neon-green rounded-lg blur opacity-75 animate-pulse"></div>
+                    <div class="relative bg-black rounded-lg p-8 border border-gray-800 max-w-2xl">
+                        <h2 class="text-4xl md:text-5xl font-black mb-4 text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">系統平台進化事件簿</h2>
+                        <p class="text-lg text-gray-300 mb-6 leading-relaxed">
+                            偵探們注意！<br>
+                            傳統的大型電腦似乎「消失」了？<br>
+                            其實它們並沒有消失，而是<span class="text-neon-blue font-bold">進化</span>成了三種不同的型態，潛伏在我們的生活中。<br>
+                            你的任務是解開這些新科技的運作原理，並找出它們帶來的影響。
+                        </p>
+                        <button onclick="switchTab('portable')" class="hover-trigger bg-neon-blue text-black font-bold py-3 px-8 rounded-full hover:bg-white hover:shadow-[0_0_20px_#00f3ff] transition-all transform hover:scale-105">
+                            開始解碼任務 <i class="fa-solid fa-arrow-right ml-2"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-4xl mt-12">
+                    <div onclick="switchTab('portable')" class="hover-trigger tech-card p-6 rounded-xl cursor-none group">
+                        <i class="fa-solid fa-mobile-screen text-4xl text-neon-blue mb-4 group-hover:animate-bounce"></i>
+                        <h3 class="text-xl font-bold mb-2">可攜式平台</h3>
+                        <p class="text-gray-400 text-sm">口袋裡的超級電腦</p>
+                    </div>
+                    <div onclick="switchTab('cloud')" class="hover-trigger tech-card p-6 rounded-xl cursor-none group">
+                        <i class="fa-solid fa-cloud text-4xl text-neon-pink mb-4 group-hover:animate-bounce"></i>
+                        <h3 class="text-xl font-bold mb-2">雲端平台</h3>
+                        <p class="text-gray-400 text-sm">看不見的運算大腦</p>
+                    </div>
+                    <div onclick="switchTab('embedded')" class="hover-trigger tech-card p-6 rounded-xl cursor-none group">
+                        <i class="fa-solid fa-robot text-4xl text-neon-green mb-4 group-hover:animate-bounce"></i>
+                        <h3 class="text-xl font-bold mb-2">嵌入式平台</h3>
+                        <p class="text-gray-400 text-sm">隱藏的單一任務專家</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 1. 可攜式系統平台 -->
+        <section id="portable" class="section-content">
+            <div class="mb-8 border-l-4 border-neon-blue pl-4">
+                <h2 class="text-3xl font-bold text-white">檔案 I：可攜式系統平台</h2>
+                <p class="text-neon-blue mt-1">Portable System Platforms</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+                <div class="bg-gray-900/50 p-6 rounded-xl border border-gray-700">
+                    <h3 class="text-xl font-bold mb-4 flex items-center"><i class="fa-solid fa-magnifying-glass mr-2 text-neon-blue"></i> 關鍵特徵</h3>
+                    <ul class="space-y-4 text-gray-300">
+                        <li class="flex items-start"><i class="fa-solid fa-check text-neon-green mt-1 mr-3"></i> <span>方便攜帶或穿戴在身上。</span></li>
+                        <li class="flex items-start"><i class="fa-solid fa-check text-neon-green mt-1 mr-3"></i> <span>麻雀雖小，五臟俱全：雖然體積小，但具備電腦硬體五大單元（輸入、輸出、記憶、運算、控制）。</span></li>
+                        <li class="flex items-start"><i class="fa-solid fa-check text-neon-green mt-1 mr-3"></i> <span>例如：手機的觸控螢幕同時是「輸入」也是「輸出」單元。</span></li>
+                    </ul>
+                </div>
+                <div class="bg-gray-900/50 p-6 rounded-xl border border-gray-700 flex items-center justify-center">
+                    <img src="https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=600&auto=format&fit=crop" alt="智慧型手機" class="rounded-lg shadow-lg opacity-80 hover:opacity-100 transition-opacity max-h-60">
+                </div>
+            </div>
+
+            <h3 class="text-2xl font-bold mb-6 text-center">常見嫌疑犯 (裝置類型)</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Card 1 -->
+                <div class="tech-card p-6 rounded-xl hover-trigger">
+                    <div class="flex justify-between items-start mb-4">
+                        <i class="fa-solid fa-mobile-button text-3xl text-blue-400"></i>
+                        <span class="text-xs bg-blue-900 text-blue-200 px-2 py-1 rounded">最普及</span>
+                    </div>
+                    <h4 class="text-lg font-bold mb-2">智慧型手機</h4>
+                    <p class="text-gray-400 text-sm mb-4">2007年 iPhone 開啟了觸控時代。</p>
+                    <div class="border-t border-gray-700 pt-4 mt-auto">
+                        <p class="text-xs text-gray-500 mb-1">作業系統 (OS):</p>
+                        <div class="flex gap-2">
+                            <span class="px-2 py-1 bg-gray-800 rounded text-xs">iOS (Apple)</span>
+                            <span class="px-2 py-1 bg-gray-800 rounded text-xs">Android (Google)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 2 -->
+                <div class="tech-card p-6 rounded-xl hover-trigger">
+                    <div class="flex justify-between items-start mb-4">
+                        <i class="fa-solid fa-clock text-3xl text-purple-400"></i>
+                        <span class="text-xs bg-purple-900 text-purple-200 px-2 py-1 rounded">健康助手</span>
+                    </div>
+                    <h4 class="text-lg font-bold mb-2">智慧型手錶</h4>
+                    <p class="text-gray-400 text-sm mb-4">量測心率、睡眠、GPS定位、發送訊息。</p>
+                    <div class="border-t border-gray-700 pt-4 mt-auto">
+                        <p class="text-xs text-gray-500 mb-1">作業系統 (OS):</p>
+                        <div class="flex gap-2">
+                            <span class="px-2 py-1 bg-gray-800 rounded text-xs">watchOS</span>
+                            <span class="px-2 py-1 bg-gray-800 rounded text-xs">Tizen (Samsung)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 3 -->
+                <div class="tech-card p-6 rounded-xl hover-trigger">
+                    <div class="flex justify-between items-start mb-4">
+                        <i class="fa-solid fa-glasses text-3xl text-green-400"></i>
+                        <span class="text-xs bg-green-900 text-green-200 px-2 py-1 rounded">專業應用</span>
+                    </div>
+                    <h4 class="text-lg font-bold mb-2">智慧眼鏡</h4>
+                    <p class="text-gray-400 text-sm mb-4">具備 AI 引擎，用於識物、醫療輔助、建築。</p>
+                    <div class="border-t border-gray-700 pt-4 mt-auto">
+                        <p class="text-xs text-gray-500 mb-1">代表產品:</p>
+                        <div class="flex gap-2">
+                            <span class="px-2 py-1 bg-gray-800 rounded text-xs">Google Glass</span>
+                            <span class="px-2 py-1 bg-gray-800 rounded text-xs">AR 眼鏡</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. 雲端系統平台 -->
+        <section id="cloud" class="section-content">
+            <div class="mb-8 border-l-4 border-neon-pink pl-4">
+                <h2 class="text-3xl font-bold text-white">檔案 II：雲端系統平台</h2>
+                <p class="text-neon-pink mt-1">Cloud System Platforms</p>
+            </div>
+
+            <div class="bg-gray-800/40 p-8 rounded-2xl mb-8 text-center border border-gray-700">
+                <i class="fa-solid fa-cloud-arrow-up text-5xl text-neon-pink mb-4 animate-pulse"></i>
+                <h3 class="text-2xl font-bold mb-4">什麼是雲端運算？</h3>
+                <p class="text-gray-300 max-w-2xl mx-auto">
+                    以前運算在你的電腦裡，現在運算在網路彼端的「超級大腦」裡。<br>
+                    使用者發送指令 ➜ 雲端執行運算 ➜ 結果回傳給你。
+                </p>
+            </div>
+
+            <h3 class="text-xl font-bold mb-6 text-center text-neon-blue">雲端服務金字塔 (點擊區塊查看詳情)</h3>
+            
+            <div class="flex flex-col md:flex-row items-center justify-center gap-12">
+                <!-- Interactive Pyramid Visualization -->
+                <div class="relative w-64 h-64 flex flex-col justify-end">
+                    <!-- SaaS Top -->
+                    <div onclick="showCloudDetail('saas')" class="hover-trigger pyramid-level w-32 mx-auto h-20 bg-blue-500 flex items-center justify-center text-white font-bold mb-1 relative z-30 shadow-[0_0_15px_rgba(59,130,246,0.5)]">
+                        SaaS
+                    </div>
+                    <!-- PaaS Middle -->
+                    <div onclick="showCloudDetail('paas')" class="hover-trigger pyramid-level w-48 mx-auto h-20 bg-purple-600 flex items-center justify-center text-white font-bold mb-1 relative z-20 shadow-[0_0_15px_rgba(147,51,234,0.5)]">
+                        PaaS
+                    </div>
+                    <!-- IaaS Bottom -->
+                    <div onclick="showCloudDetail('iaas')" class="hover-trigger pyramid-level w-64 mx-auto h-20 bg-green-600 flex items-center justify-center text-white font-bold relative z-10 shadow-[0_0_15px_rgba(22,163,74,0.5)]">
+                        IaaS
+                    </div>
+                </div>
+
+                <!-- Info Panel -->
+                <div class="w-full md:w-1/2 min-h-[250px] bg-gray-900 border border-gray-600 p-6 rounded-xl relative overflow-hidden">
+                    <div id="cloud-default" class="absolute inset-0 flex items-center justify-center text-gray-500">
+                        <p>請點擊左側金字塔區塊</p>
+                    </div>
+                    
+                    <div id="saas-info" class="hidden h-full flex flex-col justify-center animate-fadeIn">
+                        <div class="flex items-center gap-3 mb-3">
+                            <span class="bg-blue-500 text-white px-3 py-1 rounded font-bold">SaaS</span>
+                            <h4 class="text-xl font-bold text-blue-400">軟體即服務</h4>
+                        </div>
+                        <p class="text-sm text-gray-400 mb-2">Software as a Service</p>
+                        <p class="text-gray-200 mb-4">就像「租用軟體」。你不需要安裝，打開瀏覽器就能用。</p>
+                        <ul class="text-sm text-gray-300 space-y-2">
+                            <li><i class="fa-solid fa-user text-blue-500 mr-2"></i><strong>對象：</strong>一般使用者</li>
+                            <li><i class="fa-solid fa-shapes text-blue-500 mr-2"></i><strong>例子：</strong>Gmail, Google Drive, Netflix, 線上遊戲</li>
+                        </ul>
+                    </div>
+
+                    <div id="paas-info" class="hidden h-full flex flex-col justify-center animate-fadeIn">
+                        <div class="flex items-center gap-3 mb-3">
+                            <span class="bg-purple-600 text-white px-3 py-1 rounded font-bold">PaaS</span>
+                            <h4 class="text-xl font-bold text-purple-400">平台即服務</h4>
+                        </div>
+                        <p class="text-sm text-gray-400 mb-2">Platform as a Service</p>
+                        <p class="text-gray-200 mb-4">提供開發工具和環境，讓工程師寫程式更方便。</p>
+                        <ul class="text-sm text-gray-300 space-y-2">
+                            <li><i class="fa-solid fa-user-gear text-purple-500 mr-2"></i><strong>對象：</strong>程式設計師、軟體開發者</li>
+                            <li><i class="fa-solid fa-shapes text-purple-500 mr-2"></i><strong>例子：</strong>Google App Engine, 翻譯 API, 語音辨識 API</li>
+                        </ul>
+                    </div>
+
+                    <div id="iaas-info" class="hidden h-full flex flex-col justify-center animate-fadeIn">
+                        <div class="flex items-center gap-3 mb-3">
+                            <span class="bg-green-600 text-white px-3 py-1 rounded font-bold">IaaS</span>
+                            <h4 class="text-xl font-bold text-green-400">基礎設施即服務</h4>
+                        </div>
+                        <p class="text-sm text-gray-400 mb-2">Infrastructure as a Service</p>
+                        <p class="text-gray-200 mb-4">租用硬體設備（虛擬主機、儲存空間），省去買伺服器和蓋機房的錢。</p>
+                        <ul class="text-sm text-gray-300 space-y-2">
+                            <li><i class="fa-solid fa-building text-green-500 mr-2"></i><strong>對象：</strong>企業、公司 IT 部門</li>
+                            <li><i class="fa-solid fa-shapes text-green-500 mr-2"></i><strong>例子：</strong>AWS EC2, Google Compute Engine (租雲端虛擬機)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. 嵌入式系統平台 -->
+        <section id="embedded" class="section-content">
+            <div class="mb-8 border-l-4 border-neon-green pl-4">
+                <h2 class="text-3xl font-bold text-white">檔案 III：嵌入式系統平台</h2>
+                <p class="text-neon-green mt-1">Embedded System Platforms</p>
+            </div>
+
+            <div class="flex flex-col lg:flex-row gap-8 items-center mb-12">
+                <div class="lg:w-1/2">
+                    <p class="text-lg text-gray-300 mb-6 leading-relaxed">
+                        它們是「沉默的臥底」。<br>
+                        外表看起來不像電腦，但內部藏著微型電腦系統。<br>
+                        通常只為了執行<span class="text-neon-green font-bold">單一、特定的任務</span>而存在。
+                    </p>
+                    <div class="bg-gray-900 p-6 rounded-xl border border-neon-green/30">
+                        <h3 class="text-xl font-bold text-neon-green mb-2">核心機密：MCU</h3>
+                        <p class="text-sm text-gray-400 mb-3">Micro Control Unit (微控制器)</p>
+                        <p class="text-gray-300">
+                            一顆小小的晶片，裡面就整合了 CPU、記憶體和輸入輸出。<br>
+                            像是 <strong>Arduino</strong> 或 <strong>micro:bit</strong> 開發板，就是學習嵌入式系統的好工具，掀起了自造者(Maker)潮流。
+                        </p>
+                    </div>
+                </div>
+                <div class="lg:w-1/2 grid grid-cols-2 gap-4">
+                    <div class="hover-trigger bg-gray-800 p-4 rounded-lg text-center border border-gray-700 hover:border-neon-green transition-colors">
+                        <i class="fa-solid fa-bicycle text-4xl text-yellow-400 mb-2"></i>
+                        <h4 class="font-bold">YouBike 2.0</h4>
+                        <p class="text-xs text-gray-400">車機整合租借系統</p>
+                    </div>
+                    <div class="hover-trigger bg-gray-800 p-4 rounded-lg text-center border border-gray-700 hover:border-neon-green transition-colors">
+                        <i class="fa-solid fa-soap text-4xl text-blue-300 mb-2"></i>
+                        <h4 class="font-bold">全自動洗衣機</h4>
+                        <p class="text-xs text-gray-400">自動偵測重量與水位</p>
+                    </div>
+                    <div class="hover-trigger bg-gray-800 p-4 rounded-lg text-center border border-gray-700 hover:border-neon-green transition-colors">
+                        <i class="fa-solid fa-robot text-4xl text-white mb-2"></i>
+                        <h4 class="font-bold">掃地機器人</h4>
+                        <p class="text-xs text-gray-400">自動避障與回充</p>
+                    </div>
+                    <div class="hover-trigger bg-gray-800 p-4 rounded-lg text-center border border-gray-700 hover:border-neon-green transition-colors">
+                        <i class="fa-solid fa-car text-4xl text-red-400 mb-2"></i>
+                        <h4 class="font-bold">汽車電腦</h4>
+                        <p class="text-xs text-gray-400">引擎控制與導航</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. 科技衝擊 (影響) -->
+        <section id="impact" class="section-content">
+            <div class="mb-8 border-l-4 border-red-500 pl-4">
+                <h2 class="text-3xl font-bold text-white">檔案 IV：科技的雙面刃</h2>
+                <p class="text-red-400 mt-1">Impact & Issues</p>
+            </div>
+
+            <p class="text-center text-gray-300 mb-8 max-w-2xl mx-auto">
+                科技帶來便利，但也帶來了新的問題。<br>作為未來的數位公民，我們需要具備思辨能力。
+            </p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- 3D Printing -->
+                <div class="tech-card p-6 rounded-xl hover-trigger">
+                    <h3 class="text-xl font-bold mb-4 flex items-center text-white"><i class="fa-solid fa-cube mr-2 text-neon-blue"></i> 3D 列印</h3>
+                    <div class="space-y-3">
+                        <div class="bg-green-900/30 p-3 rounded border-l-2 border-green-500">
+                            <h4 class="text-green-400 text-sm font-bold">正面影響 (Pros)</h4>
+                            <p class="text-xs text-gray-300">客製化生產、醫療輔具製作(義肢)、減少庫存浪費。</p>
+                        </div>
+                        <div class="bg-red-900/30 p-3 rounded border-l-2 border-red-500">
+                            <h4 class="text-red-400 text-sm font-bold">負面衝擊 (Cons)</h4>
+                            <p class="text-xs text-gray-300">列印危險物品(槍枝)、數位盜版、智慧財產權爭議。</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Wearables -->
+                <div class="tech-card p-6 rounded-xl hover-trigger">
+                    <h3 class="text-xl font-bold mb-4 flex items-center text-white"><i class="fa-solid fa-heart-pulse mr-2 text-neon-pink"></i> 穿戴式裝置</h3>
+                    <div class="space-y-3">
+                        <div class="bg-green-900/30 p-3 rounded border-l-2 border-green-500">
+                            <h4 class="text-green-400 text-sm font-bold">正面影響 (Pros)</h4>
+                            <p class="text-xs text-gray-300">即時健康監測、VR 虛擬旅遊、個人化運動數據。</p>
+                        </div>
+                        <div class="bg-red-900/30 p-3 rounded border-l-2 border-red-500">
+                            <h4 class="text-red-400 text-sm font-bold">負面衝擊 (Cons)</h4>
+                            <p class="text-xs text-gray-300">個資外洩隱憂(位置、健康數據)、隨時被監控的壓力。</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sharing Economy -->
+                <div class="tech-card p-6 rounded-xl hover-trigger">
+                    <h3 class="text-xl font-bold mb-4 flex items-center text-white"><i class="fa-solid fa-handshake mr-2 text-yellow-400"></i> 共享經濟 (Uber/YouBike)</h3>
+                    <div class="space-y-3">
+                        <div class="bg-green-900/30 p-3 rounded border-l-2 border-green-500">
+                            <h4 class="text-green-400 text-sm font-bold">正面影響 (Pros)</h4>
+                            <p class="text-xs text-gray-300">資源有效利用、降低購買成本、生活便利。</p>
+                        </div>
+                        <div class="bg-red-900/30 p-3 rounded border-l-2 border-red-500">
+                            <h4 class="text-red-400 text-sm font-bold">負面衝擊 (Cons)</h4>
+                            <p class="text-xs text-gray-300">衝擊傳統產業(計程車)、缺乏法規管理、勞工權益問題。</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Digital Divide -->
+                <div class="tech-card p-6 rounded-xl hover-trigger">
+                    <h3 class="text-xl font-bold mb-4 flex items-center text-white"><i class="fa-solid fa-people-arrows mr-2 text-gray-400"></i> 數位落差 (Digital Divide)</h3>
+                    <div class="space-y-3">
+                        <div class="bg-gray-800 p-4 rounded text-sm text-gray-300">
+                            <p class="mb-2"><strong class="text-white">現象：</strong></p>
+                            <p>不會使用數位設備的人（如長輩、偏鄉居民），在科技社會中變得更弱勢，甚至成為「數位難民」。</p>
+                            <p class="mt-2 text-xs text-gray-500">例如：不會用手機掛號看醫生、ETC導致收費員失業。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. 遊戲實戰演練 -->
+        <section id="game" class="section-content">
+            <div class="text-center mb-10">
+                <!-- 修正標題特效: 使用 clean class -->
+                <h2 class="text-4xl font-black mb-4 game-title-clean">情報員資格測驗</h2>
+                <p class="text-gray-400">Mission Start! 準備好接受挑戰了嗎？</p>
+            </div>
+
+            <!-- Login Screen -->
+            <div id="game-login" class="max-w-md mx-auto bg-gray-900 border border-gray-700 rounded-2xl p-8 text-center">
+                <i class="fa-solid fa-user-secret text-5xl text-neon-blue mb-6"></i>
+                <h3 class="text-2xl font-bold text-white mb-4">情報員登錄</h3>
+                <p class="text-gray-400 mb-6 text-sm">請輸入你的代號以進行身份驗證</p>
+                <div class="mb-6">
+                    <input type="text" id="player-name-input" placeholder="輸入代號 (姓名)..." class="w-full px-4 py-3 rounded-lg neon-input text-center text-lg">
+                </div>
+                <button onclick="enterGameMenu()" class="hover-trigger w-full py-3 bg-neon-blue text-black font-bold rounded-lg hover:bg-white transition-all shadow-[0_0_15px_rgba(0,243,255,0.4)]">
+                    確認登錄 <i class="fa-solid fa-right-to-bracket ml-2"></i>
+                </button>
+            </div>
+
+            <!-- Mode Selection (Initially Hidden) -->
+            <div id="game-mode-select" class="hidden">
+                <div class="flex justify-center gap-4 mb-8">
+                    <button onclick="startGame('mode1')" class="hover-trigger px-6 py-3 bg-gray-800 border border-neon-blue text-neon-blue rounded hover:bg-neon-blue hover:text-black font-bold transition-all">
+                        任務 A：快問快答
+                    </button>
+                    <button onclick="startGame('mode2')" class="hover-trigger px-6 py-3 bg-gray-800 border border-green-400 text-green-400 rounded hover:bg-green-400 hover:text-black font-bold transition-all">
+                        任務 B：是非思辨
+                    </button>
+                </div>
+            </div>
+
+            <!-- Game Container -->
+            <div id="game-container" class="max-w-2xl mx-auto bg-gray-900 border border-gray-700 rounded-2xl p-8 min-h-[300px] relative hidden">
+                <div class="flex justify-between items-center mb-6 border-b border-gray-700 pb-2">
+                    <div class="text-neon-blue font-bold">Agent: <span id="current-player-name">Unknown</span></div>
+                    <div class="text-gray-400 text-sm">Question <span id="q-progress">1</span> / 10</div>
+                </div>
+
+                <div id="game-question" class="text-2xl font-bold text-center mb-8 text-white">題目載入中...</div>
+                
+                <div id="game-options" class="grid grid-cols-1 gap-4">
+                    <!-- Options will be injected here -->
+                </div>
+
+                <div id="game-feedback" class="mt-6 text-center text-lg font-bold hidden"></div>
+                
+                <div id="game-controls" class="mt-6 flex justify-between items-center border-t border-gray-800 pt-4">
+                    <div class="text-gray-500 text-sm">Score: <span id="score-display" class="text-white text-lg">0</span></div>
+                    <button onclick="nextQuestion()" id="next-btn" class="hidden px-4 py-2 bg-white text-black font-bold rounded hover:bg-gray-200">下一題 <i class="fa-solid fa-forward"></i></button>
+                </div>
+            </div>
+
+             <!-- Game Result Screen -->
+             <div id="game-result" class="max-w-2xl mx-auto bg-gray-900 border border-gray-700 rounded-2xl p-8 text-center hidden">
+                <i class="fa-solid fa-trophy text-5xl text-yellow-400 mb-4 animate-bounce"></i>
+                <h3 class="text-3xl font-bold text-white mb-2">任務完成!</h3>
+                <!-- 新增：顯示任務名稱 -->
+                <p class="text-xl text-neon-pink font-bold mb-4" id="result-mission-name"></p>
+                <p class="text-xl text-gray-300 mb-2">情報員：<span id="result-player-name" class="text-neon-blue font-bold"></span></p>
+                <div class="bg-gray-800 rounded-lg p-4 mb-6 inline-block min-w-[200px]">
+                     <p class="text-gray-400 text-sm">答對題數</p>
+                     <p class="text-4xl font-bold text-white"><span id="correct-count" class="text-neon-green"></span> / <span id="total-questions"></span></p>
+                </div>
+                <p class="text-lg text-gray-400 mb-6">總分：<span id="final-score" class="text-neon-blue font-bold"></span></p>
+                <button onclick="resetGame()" class="hover-trigger px-6 py-2 border border-white text-white rounded hover:bg-white hover:text-black transition-colors">
+                    返回選單
+                </button>
+             </div>
+        </section>
+
+    </main>
+
+    <!-- 頁尾 -->
+    <footer class="bg-black py-6 border-t border-gray-800 text-center text-xs text-gray-600 relative z-10 flex flex-col items-center justify-center gap-2">
+        <p>CYIT Classroom Module: Emerging Platforms</p>
+        <p>Designed for Junior High School Technology Curriculum</p>
+        
+        <!-- GitHub Icon Link -->
+        <a href="https://clitclassroom.github.io/" target="_blank" rel="noopener noreferrer" class="hover-trigger mt-2 text-gray-500 hover:text-white transition-all transform hover:scale-125 duration-300 group">
+            <i class="fa-brands fa-github text-3xl group-hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]"></i>
+        </a>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+        // 滑鼠特效邏輯
+        const cursorDot = document.querySelector('.cursor-dot');
+        const cursorOutline = document.querySelector('.cursor-outline');
+        
+        window.addEventListener('mousemove', (e) => {
+            const posX = e.clientX;
+            const posY = e.clientY;
+
+            // Dot follows instantly
+            cursorDot.style.left = `${posX}px`;
+            cursorDot.style.top = `${posY}px`;
+
+            // Outline follows with slight delay (animation is handled by CSS transition)
+            cursorOutline.style.left = `${posX}px`;
+            cursorOutline.style.top = `${posY}px`;
+        });
+
+        // Add hover effect for clickable elements
+        document.querySelectorAll('a, button, .hover-trigger').forEach(el => {
+            el.addEventListener('mouseenter', () => document.body.classList.add('hovering'));
+            el.addEventListener('mouseleave', () => document.body.classList.remove('hovering'));
+        });
+
+        // Tab Switching Logic
+        function switchTab(tabId) {
+            // Hide all sections
+            document.querySelectorAll('.section-content').forEach(sec => {
+                sec.classList.remove('active');
+            });
+            // Remove active class from nav buttons
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Show target section
+            document.getElementById(tabId).classList.add('active');
+            
+            // Set active nav button
+            const activeBtn = document.querySelector(`.nav-btn[data-target="${tabId}"]`);
+            if(activeBtn) activeBtn.classList.add('active');
+
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Cloud Section Detail View
+        function showCloudDetail(type) {
+            document.getElementById('cloud-default').classList.add('hidden');
+            ['saas-info', 'paas-info', 'iaas-info'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            document.getElementById(`${type}-info`).classList.remove('hidden');
+        }
+
+        // Game Data Variables
+        let playerName = "";
+        let currentQuestions = [];
+        let currentQIndex = 0;
+        let score = 0;
+        let correctCount = 0;
+        let currentModeName = ""; // 新增：追蹤當前模式名稱
+
+        // Expanded Questions - Mode 1 (10 Questions)
+        const questionsMode1 = [
+            { q: "Google 眼鏡是屬於哪種平台？", options: ["可攜式平台", "雲端平台", "嵌入式平台"], ans: 0, note: "它方便穿戴在身上，具備五大單元。" },
+            { q: "YouBike 2.0 車上的系統屬於？", options: ["可攜式平台", "雲端平台", "嵌入式平台"], ans: 2, note: "它是嵌入在腳踏車內，執行單一租借任務。" },
+            { q: "不需要安裝軟體，打開網頁就能用的 Email 服務是？", options: ["IaaS", "PaaS", "SaaS"], ans: 2, note: "SaaS = Software as a Service (軟體即服務)。" },
+            { q: "工程師租用「翻譯API」來開發程式，這是哪種服務？", options: ["IaaS", "PaaS", "SaaS"], ans: 1, note: "PaaS 提供開發平台與工具。" },
+            { q: "企業租用雲端虛擬主機，省去蓋機房的錢，這是？", options: ["IaaS", "PaaS", "SaaS"], ans: 0, note: "IaaS = Infrastructure (基礎設施)。" },
+            { q: "智慧型手機的「觸控螢幕」在五大單元中屬於？", options: ["只有輸入單元", "只有輸出單元", "同時是輸入也是輸出單元"], ans: 2, note: "你可以點擊(輸入)也能看到畫面(輸出)。" },
+            { q: "以下哪個作業系統是基於 Linux 核心開發的？", options: ["iOS", "Android", "Windows"], ans: 1, note: "Android 是基於 Linux 的開放原始碼系統。" },
+            { q: "嵌入式系統的核心「微控制器」簡稱什麼？", options: ["CPU", "GPU", "MCU"], ans: 2, note: "MCU (Micro Control Unit) 整合了簡單電腦功能。" },
+            { q: "2007 年發布第一代 iPhone 的公司是？", options: ["Google", "Apple", "HTC"], ans: 1, note: "Apple 開啟了觸控智慧型手機時代。" },
+            { q: "嵌入式系統通常具有什麼特性？", options: ["運算超強可跑3D遊戲", "執行特定單一任務且節能", "需要很大的螢幕"], ans: 1, note: "例如洗衣機只負責洗衣服，不需多餘功能。" }
+        ];
+
+        // Expanded Questions - Mode 2 (10 Questions)
+        const questionsMode2 = [
+            { q: "3D列印可以完全取代所有工廠生產，沒有任何缺點。", options: ["是 (True)", "否 (False)"], ans: 1, note: "缺點包含可能被用來製造危險物品或侵犯版權。" },
+            { q: "穿戴式裝置(如智慧手錶)必須連網傳輸資料，因此有隱私外洩風險。", options: ["是 (True)", "否 (False)"], ans: 0, note: "沒錯，健康數據和位置資訊是敏感個資。" },
+            { q: "「數位落差」是指有些人因為不會使用科技產品，生活變得不方便。", options: ["是 (True)", "否 (False)"], ans: 0, note: "例如長輩不會用手機掛號，就成了數位難民。" },
+            { q: "嵌入式系統通常功能很強大，可以像電腦一樣玩各種3D遊戲。", options: ["是 (True)", "否 (False)"], ans: 1, note: "嵌入式系統通常只為了執行「特定單一任務」，運算能力較簡單。" },
+            { q: "共享經濟(如Uber)完全沒有缺點，應該全面推廣。", options: ["是 (True)", "否 (False)"], ans: 1, note: "共享經濟缺乏法規管理，可能造成安全糾紛或勞工權益受損。" },
+            { q: "3D列印在醫療上可以用來製作義肢，是它的正面應用。", options: ["是 (True)", "否 (False)"], ans: 0, note: "這是3D列印的一大優點，能客製化符合病患需求的輔具。" },
+            { q: "音樂串流平台(如Spotify)的出現，改善了盜版音樂猖獗的問題。", options: ["是 (True)", "否 (False)"], ans: 0, note: "合法的串流服務讓產業與科技取得互利平衡。" },
+            { q: "國道 ETC 系統雖然方便，但也曾導致收費員失業，這是科技帶來的衝擊。", options: ["是 (True)", "否 (False)"], ans: 0, note: "科技進步常伴隨著舊產業工作的消失。" },
+            { q: "因為3D列印很方便，所以我可以隨意下載別人的設計圖來賣錢。", options: ["是 (True)", "否 (False)"], ans: 1, note: "這會侵犯原創者的智慧財產權。" },
+            { q: "為了避免成為「數位難民」，我們應該多學習新科技。", options: ["是 (True)", "否 (False)"], ans: 0, note: "終身學習是適應科技社會的關鍵。" }
+        ];
+
+        function enterGameMenu() {
+            const input = document.getElementById('player-name-input');
+            if (input.value.trim() === "") {
+                alert("請輸入代號！");
+                return;
+            }
+            playerName = input.value.trim();
+            document.getElementById('current-player-name').innerText = playerName;
+            
+            // Hide Login, Show Menu
+            document.getElementById('game-login').classList.add('hidden');
+            document.getElementById('game-mode-select').classList.remove('hidden');
+        }
+
+        function startGame(mode) {
+            document.getElementById('game-mode-select').classList.add('hidden');
+            document.getElementById('game-container').classList.remove('hidden');
+            document.getElementById('game-result').classList.add('hidden');
+            
+            score = 0;
+            correctCount = 0;
+            currentQIndex = 0;
+            document.getElementById('score-display').innerText = score;
+            
+            if(mode === 'mode1') {
+                currentQuestions = [...questionsMode1];
+                currentModeName = "任務 A：快問快答"; // 設定模式名稱
+            } else {
+                currentQuestions = [...questionsMode2];
+                currentModeName = "任務 B：是非思辨"; // 設定模式名稱
+            }
+
+            // Shuffle questions slightly? Optional. For now keep order.
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            const qData = currentQuestions[currentQIndex];
+            
+            // Update Progress
+            document.getElementById('q-progress').innerText = currentQIndex + 1;
+            document.getElementById('game-question').innerText = `Q${currentQIndex+1}: ${qData.q}`;
+            
+            const optsContainer = document.getElementById('game-options');
+            optsContainer.innerHTML = '';
+            
+            document.getElementById('game-feedback').classList.add('hidden');
+            document.getElementById('next-btn').classList.add('hidden');
+
+            qData.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = "quiz-option w-full py-3 px-4 bg-gray-800 border border-gray-600 rounded text-left hover:bg-gray-700 text-gray-200";
+                btn.innerText = opt;
+                btn.onclick = () => checkAnswer(idx, btn);
+                optsContainer.appendChild(btn);
+            });
+        }
+
+        function checkAnswer(selectedIdx, btnElement) {
+            // Disable all buttons
+            document.querySelectorAll('.quiz-option').forEach(btn => btn.disabled = true);
+
+            const qData = currentQuestions[currentQIndex];
+            const feedback = document.getElementById('game-feedback');
+            
+            if(selectedIdx === qData.ans) {
+                btnElement.classList.add('correct');
+                feedback.innerHTML = `<span class="text-neon-green"><i class="fa-solid fa-check"></i> 正確！</span> <span class="text-sm text-gray-400 block mt-1">${qData.note}</span>`;
+                feedback.classList.remove('hidden');
+                score += 10;
+                correctCount++;
+                document.getElementById('score-display').innerText = score;
+            } else {
+                btnElement.classList.add('wrong');
+                // Highlight correct answer
+                document.querySelectorAll('.quiz-option')[qData.ans].classList.add('correct');
+                feedback.innerHTML = `<span class="text-red-500"><i class="fa-solid fa-xmark"></i> 錯誤。</span> <span class="text-sm text-gray-400 block mt-1">${qData.note}</span>`;
+                feedback.classList.remove('hidden');
+            }
+
+            document.getElementById('next-btn').classList.remove('hidden');
+        }
+
+        function nextQuestion() {
+            currentQIndex++;
+            if(currentQIndex < currentQuestions.length) {
+                loadQuestion();
+            } else {
+                endGame();
+            }
+        }
+
+        function endGame() {
+            document.getElementById('game-container').classList.add('hidden');
+            document.getElementById('game-result').classList.remove('hidden');
+            
+            // Set Result Data
+            document.getElementById('result-player-name').innerText = playerName;
+            document.getElementById('final-score').innerText = score;
+            document.getElementById('correct-count').innerText = correctCount;
+            document.getElementById('total-questions').innerText = currentQuestions.length;
+            document.getElementById('result-mission-name').innerText = currentModeName; // 顯示模式名稱
+        }
+
+        function resetGame() {
+            document.getElementById('game-result').classList.add('hidden');
+            document.getElementById('game-mode-select').classList.remove('hidden');
+        }
+    </script>
+</body>
+
+</html>

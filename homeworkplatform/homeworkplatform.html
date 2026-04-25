@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>作業繳交平台</title>
+    
+    <!-- 網站小圖示 -->
+    <link rel="icon" type="image/png" href="img/favicon.png">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Orbitron for Tech feel, Noto Sans TC for Chinese -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;500;700&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #0f172a; /* Deep Slate */
+            overflow-x: hidden;
+            margin: 0;
+            padding: 0;
+        }
+
+        .tech-font {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        /* 背景 Canvas */
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        /* 霓虹發光效果 */
+        .neon-box {
+            background: rgba(17, 24, 39, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            transition: all 0.3s ease;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.1);
+        }
+
+        .neon-box:hover {
+            border-color: #0ea5e9; /* Sky Blue */
+            box-shadow: 0 0 20px rgba(14, 165, 233, 0.6), inset 0 0 10px rgba(14, 165, 233, 0.2);
+            transform: translateY(-5px);
+        }
+
+        /* 標題故障風特效 (Glitch Effect) */
+        .glitch-wrapper {
+            position: relative;
+        }
+        
+        .title-gradient {
+            background: linear-gradient(90deg, #00f2ff, #00ff9d);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Footer Icon 動畫 */
+        .github-icon {
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            color: #94a3b8;
+        }
+        
+        .github-icon:hover {
+            color: #ffffff;
+            transform: scale(1.2) rotate(360deg);
+            filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.8));
+        }
+        
+        /* 卷軸樣式 */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569; 
+        }
+
+        /* --- Modal Styles (新增) --- */
+        #upload-modal {
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        
+        #upload-modal.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        #upload-modal:not(.hidden) {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+        }
+
+        /* File Input Styling */
+        .file-drop-zone {
+            border: 2px dashed rgba(56, 189, 248, 0.4);
+            transition: all 0.3s;
+        }
+        .file-drop-zone:hover {
+            border-color: #0ea5e9;
+            background: rgba(56, 189, 248, 0.1);
+        }
+
+        /* Progress Bar Animation */
+        @keyframes scanline {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        .progress-bar-glow {
+            animation: scanline 2s linear infinite;
+        }
+    </style>
+</head>
+<body class="text-gray-200 flex flex-col min-h-screen">
+
+    <!-- 背景特效 -->
+    <canvas id="bg-canvas"></canvas>
+
+    <!-- 主要內容區 -->
+    <main class="flex-grow flex flex-col items-center justify-center p-4 relative z-10 w-full max-w-5xl mx-auto">
+        
+        <!-- Header -->
+        <header class="text-center mb-12 mt-8">
+            <div class="inline-block border border-cyan-500/30 bg-slate-900/50 px-4 py-1 rounded-full mb-4">
+                <span class="text-cyan-400 text-xs tracking-widest tech-font">SYSTEM READY // 2025</span>
+            </div>
+            <h1 class="text-4xl md:text-6xl font-bold mb-2 tracking-wide title-gradient tech-font glitch-wrapper">
+                作業繳交平台
+            </h1>
+            <p class="text-gray-400 text-lg mt-2">請選擇你的班級以上傳檔案</p>
+        </header>
+
+        <!-- 班級選擇網格 -->
+        <div id="class-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 w-full px-4 mb-16">
+            <!-- 按鈕將由 JS 自動生成 -->
+        </div>
+
+    </main>
+
+    <!-- Upload Modal (新增上傳介面) -->
+    <div id="upload-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/90 backdrop-blur-sm p-4">
+        <!-- Modal Content -->
+        <div class="bg-slate-900 border border-cyan-500/50 rounded-xl shadow-[0_0_30px_rgba(8,145,178,0.3)] w-full max-w-lg relative overflow-hidden flex flex-col">
+            
+            <!-- Decorative Header Line -->
+            <div class="h-1 w-full bg-gradient-to-r from-cyan-600 via-emerald-400 to-cyan-600"></div>
+
+            <!-- Header -->
+            <div class="p-6 pb-2 flex justify-between items-start">
+                <div>
+                    <h3 class="text-cyan-400 text-xs tracking-[0.2em] tech-font mb-1">UPLOAD PORTAL</h3>
+                    <h2 class="text-2xl font-bold text-white" id="modal-title">Class Upload</h2>
+                </div>
+                <button onclick="closeModal()" class="text-slate-500 hover:text-white transition-colors">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div class="p-6 pt-4 flex-grow">
+                <!-- Status Message -->
+                <div id="upload-status" class="hidden mb-4 p-3 rounded bg-cyan-900/30 border border-cyan-500/30 text-cyan-200 text-sm flex items-center gap-2">
+                    <i class="fas fa-info-circle"></i>
+                    <span id="status-text">Ready to upload</span>
+                </div>
+
+                <!-- Form -->
+                <form id="upload-form" onsubmit="handleUpload(event)" class="space-y-6">
+                    <!-- File Input -->
+                    <div class="relative group">
+                        <label for="file-upload" class="file-drop-zone flex flex-col items-center justify-center w-full h-32 rounded-lg cursor-pointer bg-slate-800/50">
+                            <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                                <i class="fas fa-cloud-upload-alt text-4xl text-slate-400 mb-3 group-hover:text-cyan-400 transition-colors"></i>
+                                <p class="mb-2 text-sm text-slate-300"><span class="font-semibold text-cyan-400">點擊選擇</span> 或將檔案拖曳至此</p>
+                                <p class="text-xs text-slate-500">支援 PDF, DOC, PPT, JPG (MAX 10MB)</p>
+                            </div>
+                            <input id="file-upload" type="file" class="hidden" required onchange="updateFileName(this)" />
+                        </label>
+                    </div>
+                    
+                    <!-- Selected File Name Display -->
+                    <div id="file-name-display" class="hidden text-sm text-emerald-400 font-mono text-center bg-emerald-900/20 py-1 rounded border border-emerald-500/30">
+                        <i class="fas fa-check mr-2"></i><span id="file-name-text">filename.pdf</span>
+                    </div>
+
+                    <!-- Password Input (New) -->
+                    <div class="relative">
+                        <label class="block text-cyan-400 text-xs font-bold mb-2 tech-font tracking-wider" for="upload-password">
+                            ACCESS CODE <i class="fas fa-lock ml-1"></i>
+                        </label>
+                        <input 
+                            class="shadow appearance-none border border-cyan-500/30 rounded w-full py-3 px-4 text-white bg-slate-800 leading-tight focus:outline-none focus:border-cyan-400 focus:shadow-[0_0_15px_rgba(8,145,178,0.3)] transition-all placeholder-slate-600" 
+                            id="upload-password" 
+                            type="password" 
+                            placeholder="請輸入上傳密碼" 
+                            required>
+                    </div>
+
+                    <!-- Hidden Inputs -->
+                    <input type="hidden" id="class-id-input" value="">
+
+                    <!-- Submit Button -->
+                    <button type="submit" id="submit-btn" class="w-full relative overflow-hidden group bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 transform hover:scale-[1.02] shadow-[0_0_15px_rgba(8,145,178,0.5)]">
+                        <span class="relative z-10 flex items-center justify-center gap-2">
+                            <i class="fas fa-paper-plane"></i> 
+                            <span class="tech-font tracking-wider">INITIATE UPLOAD</span>
+                        </span>
+                        <!-- Button Glitch Effect -->
+                        <div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 skew-y-12"></div>
+                    </button>
+                </form>
+
+                <!-- Loading Bar (Hidden by default) -->
+                <div id="progress-container" class="hidden mt-6">
+                    <div class="flex justify-between text-xs text-cyan-400 mb-1 tech-font">
+                        <span>TRANSMITTING DATA...</span>
+                        <span id="progress-percent">0%</span>
+                    </div>
+                    <div class="w-full bg-slate-700 rounded-full h-2 overflow-hidden relative">
+                        <div id="progress-bar" class="bg-cyan-500 h-2 rounded-full w-0 relative">
+                            <div class="absolute inset-0 bg-white/30 progress-bar-glow"></div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Footer Decorative -->
+            <div class="bg-slate-800/50 p-3 flex justify-between items-center text-[10px] text-slate-500 tech-font uppercase">
+                <span>SECURE CONNECTION</span>
+                <span>ID: <span id="footer-class-id">---</span></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="w-full bg-slate-900/80 backdrop-blur-md border-t border-slate-700 p-6 z-10">
+        <div class="max-w-5xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            
+            <div class="text-center md:text-left">
+                <p class="text-sm text-gray-400 font-light tech-font">
+                    &copy; 2025 CYIT Classroom | 國中資訊科技
+                </p>
+                <p class="text-xs text-gray-500 mt-1">
+                    Content: Homework Platform
+                </p>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <span class="text-xs text-gray-500 hidden md:block">SOURCE CODE</span>
+                <!-- Updated Github Link -->
+                <a href="https://clitclassroo" target="_blank" title="Visit GitHub" class="group">
+                    <i class="fab fa-github text-3xl github-icon"></i>
+                </a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        (function() {
+            // ==========================================
+            // 重要設定區域
+            // ==========================================
+            
+            
+            const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbylSWlDXp4PyUtPWoRyin_qU_6i-Uq4sZC7PcW0FC8qukkws3CZMcZ2IvqT6-eLXvau/exec'; 
+            
+            const UPLOAD_PASSWORD = '2025'; 
+
+            const classConfig = [
+                { id: '102', folderId: '160YaGUl5YkVs52QZ0GezHySkEwU41hgd' },
+                { id: '105', folderId: '1AhEsQzPpDvQvf7vhKXhZClOspYJYiMuU' },
+                { id: '108', folderId: '1gZIem5zyEePj1YwbOxH4wUjk-kGRZ-od' },
+                { id: '113', folderId: '1bOqzMpkOYHURkXHVdnRbXS0UZ60UGbfN' },
+                { id: '115', folderId: '1hSxWcKp89DK7hTXj9ibxus-JR0lg5yU7' },
+                { id: '306', folderId: '1GJ0bspv5tb459RXhJ98_fuAH8Mgykkeh' }
+            ];
+
+            // ==========================================
+            // UI 邏輯
+            // ==========================================
+            const gridContainer = document.getElementById('class-grid');
+            const modal = document.getElementById('upload-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const footerClassId = document.getElementById('footer-class-id');
+            const classIdInput = document.getElementById('class-id-input');
+
+            // 生成班級按鈕
+            if (gridContainer) {
+                classConfig.forEach(cls => {
+                    const card = document.createElement('div');
+                    card.className = "neon-box rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer group relative overflow-hidden";
+                    
+                    // 點擊開啟 Modal
+                    card.onclick = () => openModal(cls);
+
+                    card.innerHTML = `
+                        <div class="absolute top-0 right-0 p-3 opacity-20 group-hover:opacity-100 transition-opacity">
+                            <i class="fas fa-upload text-cyan-400"></i>
+                        </div>
+                        <div class="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center mb-4 group-hover:bg-cyan-900/30 transition-colors border border-slate-600 group-hover:border-cyan-500">
+                            <i class="fas fa-folder-open text-2xl text-cyan-500 group-hover:text-cyan-300"></i>
+                        </div>
+                        <h2 class="text-3xl font-bold text-white tech-font tracking-wider group-hover:text-cyan-400 transition-colors">${cls.id}</h2>
+                        <span class="text-xs text-slate-400 mt-2 uppercase tracking-widest group-hover:text-cyan-200">Class Database</span>
+                        <div class="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500 to-transparent transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500"></div>
+                    `;
+                    gridContainer.appendChild(card);
+                });
+            }
+
+            // 開啟 Modal
+            window.openModal = function(cls) {
+                modalTitle.textContent = `${cls.id} 班級作業上傳`;
+                footerClassId.textContent = cls.id;
+                classIdInput.value = cls.id; // 紀錄當前班級 ID
+                
+                // 儲存當前資料夾 ID 到 form dataset 供上傳使用
+                document.getElementById('upload-form').dataset.folderId = cls.folderId;
+
+                // Reset Form UI
+                document.getElementById('upload-form').reset();
+                document.getElementById('file-name-display').classList.add('hidden');
+                document.getElementById('progress-container').classList.add('hidden');
+                document.getElementById('submit-btn').classList.remove('hidden');
+                document.getElementById('upload-status').classList.add('hidden');
+
+                modal.classList.remove('hidden');
+            };
+
+            // 關閉 Modal
+            window.closeModal = function() {
+                modal.classList.add('hidden');
+            };
+
+            // 顯示選擇的檔名
+            window.updateFileName = function(input) {
+                const fileNameDisplay = document.getElementById('file-name-display');
+                const fileNameText = document.getElementById('file-name-text');
+                if (input.files && input.files.length > 0) {
+                    fileNameText.textContent = input.files[0].name;
+                    fileNameDisplay.classList.remove('hidden');
+                } else {
+                    fileNameDisplay.classList.add('hidden');
+                }
+            };
+
+            // 上傳處理邏輯
+            window.handleUpload = function(e) {
+                e.preventDefault();
+                
+                // --- 1. 密碼驗證 (新增) ---
+                const passwordInput = document.getElementById('upload-password');
+                const userPassword = passwordInput.value;
+                if (userPassword !== UPLOAD_PASSWORD) {
+                    const statusDiv = document.getElementById('upload-status');
+                    const statusText = document.getElementById('status-text');
+                    
+                    statusDiv.classList.remove('hidden', 'bg-emerald-900/30', 'text-emerald-200');
+                    statusDiv.classList.add('bg-red-900/30', 'border-red-500/30', 'text-red-200');
+                    statusDiv.querySelector('i').className = "fas fa-exclamation-triangle";
+                    statusText.textContent = "密碼錯誤！存取被拒絕。";
+                    
+                    // 加上一點震動動畫
+                    passwordInput.classList.add('border-red-500');
+                    setTimeout(() => passwordInput.classList.remove('border-red-500'), 500);
+                    return;
+                }
+                // --------------------------
+
+                const fileInput = document.getElementById('file-upload');
+                const file = fileInput.files[0];
+                const folderId = e.target.dataset.folderId;
+                const classId = classIdInput.value;
+
+                if (!file) {
+                    alert("請先選擇檔案！");
+                    return;
+                }
+
+                // UI 切換至上傳中
+                const form = document.getElementById('upload-form');
+                const btn = document.getElementById('submit-btn');
+                const progressContainer = document.getElementById('progress-container');
+                const progressBar = document.getElementById('progress-bar');
+                const progressPercent = document.getElementById('progress-percent');
+                const statusDiv = document.getElementById('upload-status');
+                const statusText = document.getElementById('status-text');
+
+                btn.classList.add('hidden');
+                progressContainer.classList.remove('hidden');
+                
+                // 重置狀態訊息樣式
+                statusDiv.classList.remove('bg-red-900/30', 'text-red-200', 'bg-emerald-900/30', 'text-emerald-200');
+                statusDiv.classList.add('bg-cyan-900/30', 'border-cyan-500/30', 'text-cyan-200');
+                statusDiv.querySelector('i').className = "fas fa-info-circle";
+
+                // 檢查是否有設定 GAS URL
+                if (!GOOGLE_SCRIPT_URL) {
+                    // --- 模擬模式 (Demo Mode) ---
+                    let width = 0;
+                    const interval = setInterval(() => {
+                        if (width >= 100) {
+                            clearInterval(interval);
+                            statusText.textContent = "已完成上傳！"; // 改為使用者要求的文字
+                            statusDiv.classList.remove('hidden');
+                            statusDiv.classList.add('bg-emerald-900/30', 'border-emerald-500/30', 'text-emerald-200');
+                            statusDiv.querySelector('i').className = "fas fa-check-circle";
+                            
+                            // 延遲後跳出視窗並關閉
+                            setTimeout(() => {
+                                alert("已完成上傳"); // 另外跳出訊息
+                                closeModal();
+                            }, 500);
+                        } else {
+                            width += 2;
+                            progressBar.style.width = width + '%';
+                            progressPercent.textContent = width + '%';
+                        }
+                    }, 50);
+                    return;
+                }
+
+                // --- 真實上傳模式 (Real Upload) ---
+                // 將檔案轉為 Base64
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const content = e.target.result.split(',')[1]; // 去除 data:application/pdf;base64, 前綴
+                    const obj = {
+                        base64: content,
+                        type: file.type,
+                        name: file.name,
+                        folderId: folderId,
+                        classId: classId
+                    };
+
+                    statusDiv.classList.remove('hidden');
+                    statusText.textContent = "正在連線至雲端硬碟...";
+
+                    fetch(GOOGLE_SCRIPT_URL, {
+                        method: "POST",
+                        body: JSON.stringify(obj)
+                    })
+                    .then(response => response.text())
+                    .then(data => {
+                        progressBar.style.width = '100%';
+                        progressPercent.textContent = '100%';
+                        statusText.textContent = "已完成上傳！"; // 改為使用者要求的文字
+                        statusDiv.classList.remove('bg-cyan-900/30', 'text-cyan-200');
+                        statusDiv.classList.add('bg-emerald-900/30', 'text-emerald-200');
+                        statusDiv.querySelector('i').className = "fas fa-check-circle";
+                        
+                        // 延遲後跳出視窗並關閉
+                        setTimeout(() => {
+                            alert("已完成上傳"); // 另外跳出訊息
+                            closeModal();
+                        }, 500);
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        statusText.textContent = "上傳失敗，請稍後再試";
+                        statusDiv.classList.remove('bg-cyan-900/30', 'text-cyan-200');
+                        statusDiv.classList.add('bg-red-900/30', 'text-red-200');
+                        statusDiv.querySelector('i').className = "fas fa-exclamation-circle";
+                        btn.classList.remove('hidden'); // 允許重試
+                    });
+                };
+                reader.readAsDataURL(file);
+            };
+
+            // ==========================================
+            // 背景特效邏輯 (Particle Network)
+            // ==========================================
+            const canvas = document.getElementById('bg-canvas');
+            if (!canvas) return;
+
+            const ctx = canvas.getContext('2d');
+            let particles = [];
+            let w, h;
+
+            function resize() {
+                w = canvas.width = window.innerWidth;
+                h = canvas.height = window.innerHeight;
+                createParticles();
+            }
+
+            class Particle {
+                constructor() {
+                    this.x = Math.random() * w;
+                    this.y = Math.random() * h;
+                    this.vx = (Math.random() - 0.5) * 0.5;
+                    this.vy = (Math.random() - 0.5) * 0.5;
+                    this.size = Math.random() * 2 + 1;
+                    this.color = Math.random() > 0.5 ? '#0ea5e9' : '#14b8a6';
+                }
+                update() {
+                    this.x += this.vx;
+                    this.y += this.vy;
+                    if (this.x < 0 || this.x > w) this.vx *= -1;
+                    if (this.y < 0 || this.y > h) this.vy *= -1;
+                }
+                draw() {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fillStyle = this.color;
+                    ctx.fill();
+                }
+            }
+
+            function createParticles() {
+                particles = [];
+                const particleCount = window.innerWidth < 768 ? 40 : 80;
+                for (let i = 0; i < particleCount; i++) {
+                    particles.push(new Particle());
+                }
+            }
+
+            function animate() {
+                ctx.clearRect(0, 0, w, h);
+                for (let i = 0; i < particles.length; i++) {
+                    particles[i].update();
+                    particles[i].draw();
+                    for (let j = i; j < particles.length; j++) {
+                        const dx = particles[i].x - particles[j].x;
+                        const dy = particles[i].y - particles[j].y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        if (distance < 120) {
+                            ctx.beginPath();
+                            ctx.strokeStyle = `rgba(14, 165, 233, ${1 - distance / 120})`;
+                            ctx.lineWidth = 0.5;
+                            ctx.moveTo(particles[i].x, particles[i].y);
+                            ctx.lineTo(particles[j].x, particles[j].y);
+                            ctx.stroke();
+                        }
+                    }
+                }
+                requestAnimationFrame(animate);
+            }
+
+            window.addEventListener('resize', resize);
+            resize();
+            animate();
+        })();
+    </script>
+</body>
+
+</html>

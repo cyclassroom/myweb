@@ -1,0 +1,586 @@
+<!doctype html>
+<html lang="zh-TW" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Online Timer</title>
+  <script src="/_sdk/element_sdk.js"></script>
+  <style>
+    body {
+      box-sizing: border-box;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    @keyframes gradient-shift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.05); opacity: 0.9; }
+    }
+
+    @keyframes fade-in {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes glow {
+      0%, 100% { box-shadow: 0 0 20px rgba(255,255,255,0.3); }
+      50% { box-shadow: 0 0 40px rgba(255,255,255,0.6); }
+    }
+
+    @keyframes urgent-pulse {
+      0% { transform: scale(1); color: #00f5ff; text-shadow: 0 0 20px rgba(0,245,255,0.8), 0 0 40px rgba(0,245,255,0.6); }
+      33% { transform: scale(1.15); color: #00d4ff; text-shadow: 0 0 30px rgba(0,212,255,0.9), 0 0 60px rgba(0,212,255,0.7); }
+      66% { transform: scale(1.15); color: #0099ff; text-shadow: 0 0 30px rgba(0,153,255,0.9), 0 0 60px rgba(0,153,255,0.7); }
+      100% { transform: scale(1); color: #00f5ff; text-shadow: 0 0 20px rgba(0,245,255,0.8), 0 0 40px rgba(0,245,255,0.6); }
+    }
+
+    @keyframes urgent-ring {
+      0% { stroke: #00f5ff; filter: drop-shadow(0 0 12px rgba(0,245,255,0.8)); }
+      33% { stroke: #00d4ff; filter: drop-shadow(0 0 20px rgba(0,212,255,1)); }
+      66% { stroke: #0099ff; filter: drop-shadow(0 0 20px rgba(0,153,255,1)); }
+      100% { stroke: #00f5ff; filter: drop-shadow(0 0 12px rgba(0,245,255,0.8)); }
+    }
+
+    @keyframes rotate {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes progress-gradient {
+      0% { stroke: #00f5ff; }
+      25% { stroke: #00d4ff; }
+      50% { stroke: #0099ff; }
+      75% { stroke: #00d4ff; }
+      100% { stroke: #00f5ff; }
+    }
+
+    .grid-pattern {
+      background-image: 
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 50px 50px;
+    }
+
+    .timer-pulse {
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    .fade-in {
+      animation: fade-in 0.5s ease-out;
+    }
+
+    .glow-effect {
+      animation: glow 2s ease-in-out infinite;
+    }
+
+    .rotate-effect {
+      animation: rotate 3s linear infinite;
+    }
+
+    .preset-btn, .scene-btn {
+      transition: all 0.3s ease;
+    }
+
+    .preset-btn:hover, .scene-btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .preset-btn.active, .scene-btn.active {
+      box-shadow: 0 0 20px rgba(255,255,255,0.5);
+    }
+
+    input[type="number"], input[type="text"] {
+      background: rgba(255,255,255,0.15);
+      border: 2px solid rgba(255,255,255,0.3);
+      color: white;
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-size: 16px;
+      outline: none;
+      transition: all 0.3s ease;
+      backdrop-filter: blur(10px);
+    }
+
+    input[type="number"]::placeholder, input[type="text"]::placeholder {
+      color: rgba(255,255,255,0.6);
+    }
+
+    input[type="number"]:focus, input[type="text"]:focus {
+      border-color: rgba(255,255,255,0.6);
+      background: rgba(255,255,255,0.2);
+    }
+
+    .progress-ring {
+      transform: rotate(-90deg);
+    }
+
+    .progress-ring-circle {
+      transition: stroke-dashoffset 0.3s;
+    }
+  </style>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+ </head>
+ <body class="h-full">
+  <main id="app" class="w-full h-full flex items-center justify-center overflow-auto grid-pattern" style="background: linear-gradient(-45deg, #0f2027, #203a43, #3d5a6c, #2b4d7a); background-size: 400% 400%; animation: gradient-shift 15s ease infinite;"><!-- ��上角現在時間 -->
+   <div id="current-time" class="absolute top-6 right-6 text-white text-right" style="backdrop-filter: blur(10px); background: rgba(255,255,255,0.1); padding: 12px 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.2);">
+    <div id="time-display" class="text-2xl font-bold tracking-wide" style="text-shadow: 0 2px 8px rgba(0,0,0,0.3);">
+     00:00:00
+    </div>
+    <div id="date-display" class="text-sm mt-1" style="color: rgba(255,255,255,0.8);">
+     2024年1月1日
+    </div>
+   </div>
+   <div class="w-full h-full flex items-center justify-between px-6 py-4 gap-4"><!-- 左側：場景選擇 -->
+    <div class="flex flex-col gap-3 w-36">
+     <div class="text-white text-sm font-semibold mb-1 text-center">
+      場景
+     </div><button class="scene-btn px-4 py-2 rounded-full text-sm font-semibold active" data-scene="簡報" style="background: rgba(255,255,255,0.25); color: #ffffff; backdrop-filter: blur(10px);"> 簡報 </button> <button class="scene-btn px-4 py-2 rounded-full text-sm font-semibold" data-scene="運動" style="background: rgba(255,255,255,0.25); color: #ffffff; backdrop-filter: blur(10px);"> 運動 </button> <button class="scene-btn px-4 py-2 rounded-full text-sm font-semibold" data-scene="準備" style="background: rgba(255,255,255,0.25); color: #ffffff; backdrop-filter: blur(10px);"> 準備 </button> <button class="scene-btn px-4 py-2 rounded-full text-sm font-semibold" data-scene="測驗" style="background: rgba(255,255,255,0.25); color: #ffffff; backdrop-filter: blur(10px);"> 測驗 </button> <input type="text" id="custom-scene-input" placeholder="自訂..." class="w-full text-sm" style="padding: 8px 12px;"> <button id="custom-scene-btn" class="px-4 py-2 rounded-full text-sm font-semibold" style="background: rgba(255,255,255,0.3); color: #ffffff; backdrop-filter: blur(10px);"> 設定 </button>
+    </div><!-- 中間：計時器核心 -->
+    <div class="flex-1 flex flex-col items-center justify-center"><!-- 標題 -->
+     <h1 id="timer-title" class="text-3xl font-bold mb-4 fade-in" style="color: #ffffff; text-shadow: 0 4px 12px rgba(0,0,0,0.15);">專注時光</h1><!-- 計時器顯示與環形進度條 -->
+     <div class="mb-6 relative inline-block">
+      <svg class="progress-ring" width="280" height="280"><circle class="progress-ring-circle" stroke="rgba(255,255,255,0.2)" stroke-width="6" fill="transparent" r="130" cx="140" cy="140" /> <circle id="progress-circle" class="progress-ring-circle" stroke="url(#gradient)" stroke-width="6" fill="transparent" r="130" cx="140" cy="140" style="stroke-dasharray: 816.81; stroke-dashoffset: 0; filter: drop-shadow(0 0 8px rgba(0,245,255,0.6));" /> <defs>
+        <lineargradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+         <stop offset="0%" style="stop-color:#00f5ff;stop-opacity:1">
+          <animate attributename="stop-color" values="#00f5ff;#00d4ff;#0099ff;#00d4ff;#00f5ff" dur="3s" repeatcount="indefinite" />
+         </stop>
+         <stop offset="50%" style="stop-color:#00d4ff;stop-opacity:1">
+          <animate attributename="stop-color" values="#00d4ff;#0099ff;#00d4ff;#00f5ff;#00d4ff" dur="3s" repeatcount="indefinite" />
+         </stop>
+         <stop offset="100%" style="stop-color:#0099ff;stop-opacity:1">
+          <animate attributename="stop-color" values="#0099ff;#00d4ff;#00f5ff;#00d4ff;#0099ff" dur="3s" repeatcount="indefinite" />
+         </stop>
+        </lineargradient>
+       </defs>
+      </svg>
+      <div class="absolute inset-0 flex flex-col items-center justify-center">
+       <div id="timer-display" class="text-7xl font-bold tracking-tight timer-pulse" style="color: #ffffff; text-shadow: 0 8px 24px rgba(0,0,0,0.2);">
+        15:00
+       </div>
+       <div id="timer-label" class="text-lg mt-1" style="color: rgba(255,255,255,0.9);">
+        準備開始
+       </div>
+      </div>
+     </div><!-- 循環功能 -->
+     <div class="mb-4 flex items-center justify-center gap-2"><label class="flex items-center gap-2 cursor-pointer"> <input type="checkbox" id="loop-checkbox" class="w-4 h-4 cursor-pointer"> <span class="text-white text-sm font-semibold">循環計時</span> </label>
+      <div id="loop-count" class="text-white text-sm font-semibold hidden">
+       (第 <span id="current-loop">1</span> 輪)
+      </div>
+     </div><!-- 控制按鈕 -->
+     <div class="flex gap-4 justify-center items-center mb-4"><button id="start-btn" class="px-10 py-3 text-lg font-semibold rounded-full transition-all duration-300 shadow-lg hover:shadow-2xl hover:scale-105 active:scale-95" style="background: rgba(255,255,255,0.95); color: #0f2027;"> 開始 </button> <button id="reset-btn" class="px-10 py-3 text-lg font-semibold rounded-full transition-all duration-300 shadow-lg hover:shadow-2xl hover:scale-105 active:scale-95" style="background: rgba(255,255,255,0.25); color: #ffffff; backdrop-filter: blur(10px);"> 重設 </button>
+     </div><!-- 完成訊息 -->
+     <div id="completion-message" class="hidden text-2xl font-bold fade-in" style="color: #ffffff; backdrop-filter: blur(20px); background: rgba(255,255,255,0.15); padding: 20px 40px; border-radius: 20px; border: 2px solid rgba(255,255,255,0.3); box-shadow: 0 0 40px rgba(0,245,255,0.6), 0 0 80px rgba(0,245,255,0.4), 0 8px 32px rgba(0,0,0,0.3); animation: glow 1.5s ease-in-out infinite;">
+      🎉 時間到！
+     </div><!-- 循環訊息 -->
+     <div id="loop-message" class="hidden text-2xl font-semibold fade-in" style="color: #ffffff; text-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+      開始下一輪
+     </div>
+    </div><!-- 右側：時長選擇 -->
+    <div class="flex flex-col gap-3 w-36">
+     <div class="text-white text-sm font-semibold mb-1 text-center">
+      時長
+     </div><button class="preset-btn px-4 py-2 rounded-full text-sm font-semibold" data-minutes="5" style="background: rgba(255,255,255,0.25); color: #ffffff; backdrop-filter: blur(10px);"> 5 分鐘 </button> <button class="preset-btn px-4 py-2 rounded-full text-sm font-semibold" data-minutes="10" style="background: rgba(255,255,255,0.25); color: #ffffff; backdrop-filter: blur(10px);"> 10 分鐘 </button> <button class="preset-btn px-4 py-2 rounded-full text-sm font-semibold active" data-minutes="15" style="background: rgba(255,255,255,0.25); color: #ffffff; backdrop-filter: blur(10px);"> 15 分鐘 </button> <button class="preset-btn px-4 py-2 rounded-full text-sm font-semibold" data-minutes="20" style="background: rgba(255,255,255,0.25); color: #ffffff; backdrop-filter: blur(10px);"> 20 分鐘 </button>
+     <div class="flex gap-1 items-center"><input type="number" id="custom-minutes" placeholder="分" min="1" max="99" class="w-14 text-center text-sm" style="padding: 6px;"> <span class="text-white text-sm">:</span> <input type="number" id="custom-seconds" placeholder="秒" min="0" max="59" class="w-14 text-center text-sm" style="padding: 6px;">
+     </div><button id="custom-time-btn" class="px-4 py-2 rounded-full text-sm font-semibold" style="background: rgba(255,255,255,0.3); color: #ffffff; backdrop-filter: blur(10px);"> 設定 </button>
+    </div>
+   </div>
+  </main>
+  <script>
+    const defaultConfig = {
+      timer_title: "Online Timer",
+      completion_message: "時間到！",
+      loop_message: "開始下一輪",
+      background_gradient_start: "#0f2027",
+      background_gradient_mid1: "#203a43",
+      background_gradient_mid2: "#3d5a6c",
+      background_gradient_end: "#2b4d7a",
+      text_color: "#ffffff",
+      font_family: "system-ui",
+      font_size: 16
+    };
+
+    let config = { ...defaultConfig };
+    let timerInterval = null;
+    let totalSeconds = 15 * 60;
+    let remainingSeconds = totalSeconds;
+    let isRunning = false;
+    let isLoopEnabled = false;
+    let currentLoop = 1;
+    let currentScene = "簡報";
+
+    // DOM 元素
+    const timerDisplay = document.getElementById('timer-display');
+    const timerLabel = document.getElementById('timer-label');
+    const startBtn = document.getElementById('start-btn');
+    const resetBtn = document.getElementById('reset-btn');
+    const progressCircle = document.getElementById('progress-circle');
+    const completionMessage = document.getElementById('completion-message');
+    const loopMessage = document.getElementById('loop-message');
+    const timerTitle = document.getElementById('timer-title');
+    const app = document.getElementById('app');
+    const loopCheckbox = document.getElementById('loop-checkbox');
+    const loopCountDiv = document.getElementById('loop-count');
+    const currentLoopSpan = document.getElementById('current-loop');
+    const customMinutes = document.getElementById('custom-minutes');
+    const customSeconds = document.getElementById('custom-seconds');
+    const customTimeBtn = document.getElementById('custom-time-btn');
+    const customSceneInput = document.getElementById('custom-scene-input');
+    const customSceneBtn = document.getElementById('custom-scene-btn');
+
+    const circumference = 2 * Math.PI * 130;
+
+    function formatTime(seconds) {
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    function updateDisplay() {
+      timerDisplay.textContent = formatTime(remainingSeconds);
+      const progress = (remainingSeconds / totalSeconds);
+      const offset = circumference * (1 - progress);
+      progressCircle.style.strokeDashoffset = offset;
+    }
+
+    function updateSceneLabel() {
+      timerLabel.textContent = isRunning ? `${currentScene}中...` : `準備 ${currentScene}`;
+    }
+
+    function startTimer() {
+      if (isRunning) return;
+      
+      isRunning = true;
+      startBtn.textContent = '暫停';
+      updateSceneLabel();
+      timerDisplay.classList.add('timer-pulse');
+      completionMessage.classList.add('hidden');
+      loopMessage.classList.add('hidden');
+
+      timerInterval = setInterval(() => {
+        remainingSeconds--;
+        updateDisplay();
+
+        // 最後10秒警示效果
+        if (remainingSeconds <= 10 && remainingSeconds > 0) {
+          timerDisplay.classList.remove('timer-pulse');
+          timerDisplay.style.animation = 'urgent-pulse 0.8s ease-in-out infinite';
+          progressCircle.style.animation = 'urgent-ring 0.8s ease-in-out infinite';
+        } else if (remainingSeconds > 10) {
+          timerDisplay.style.animation = '';
+          progressCircle.style.animation = '';
+          timerDisplay.classList.add('timer-pulse');
+        }
+
+        if (remainingSeconds <= 0) {
+          completeTimer();
+        }
+      }, 1000);
+    }
+
+    function pauseTimer() {
+      if (!isRunning) return;
+      
+      isRunning = false;
+      clearInterval(timerInterval);
+      startBtn.textContent = '繼續';
+      timerLabel.textContent = '已暫停';
+      timerDisplay.classList.remove('timer-pulse');
+    }
+
+    function resetTimer() {
+      isRunning = false;
+      clearInterval(timerInterval);
+      remainingSeconds = totalSeconds;
+      startBtn.textContent = '開始';
+      updateSceneLabel();
+      completionMessage.classList.add('hidden');
+      loopMessage.classList.add('hidden');
+      timerDisplay.classList.remove('timer-pulse');
+      timerDisplay.style.animation = '';
+      progressCircle.style.animation = '';
+      currentLoop = 1;
+      currentLoopSpan.textContent = currentLoop;
+      updateDisplay();
+    }
+
+    function completeTimer() {
+      isRunning = false;
+      clearInterval(timerInterval);
+      timerDisplay.classList.remove('timer-pulse');
+      
+      // 視覺效果
+      let flashCount = 0;
+      const flashInterval = setInterval(() => {
+        timerDisplay.style.opacity = timerDisplay.style.opacity === '0.3' ? '1' : '0.3';
+        progressCircle.style.opacity = progressCircle.style.opacity === '0.3' ? '1' : '0.3';
+        flashCount++;
+        if (flashCount >= 6) {
+          clearInterval(flashInterval);
+          timerDisplay.style.opacity = '1';
+          progressCircle.style.opacity = '1';
+          
+          if (isLoopEnabled) {
+            // 循環模式
+            currentLoop++;
+            currentLoopSpan.textContent = currentLoop;
+            loopMessage.classList.remove('hidden');
+            timerLabel.textContent = '';
+            
+            setTimeout(() => {
+              loopMessage.classList.add('hidden');
+              remainingSeconds = totalSeconds;
+              updateDisplay();
+              startTimer();
+            }, 2000);
+          } else {
+            // 完成
+            completionMessage.classList.remove('hidden');
+            timerLabel.textContent = '';
+            startBtn.textContent = '開始';
+          }
+        }
+      }, 300);
+    }
+
+    // 事件監聽
+    startBtn.addEventListener('click', () => {
+      if (isRunning) {
+        pauseTimer();
+      } else {
+        startTimer();
+      }
+    });
+
+    resetBtn.addEventListener('click', resetTimer);
+
+    loopCheckbox.addEventListener('change', (e) => {
+      isLoopEnabled = e.target.checked;
+      loopCountDiv.classList.toggle('hidden', !isLoopEnabled);
+    });
+
+    // 預設時長按鈕
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        
+        const minutes = parseInt(btn.dataset.minutes);
+        totalSeconds = minutes * 60;
+        remainingSeconds = totalSeconds;
+        updateDisplay();
+        resetTimer();
+      });
+    });
+
+    // 場景按鈕
+    document.querySelectorAll('.scene-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.scene-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        
+        currentScene = btn.dataset.scene;
+        updateSceneLabel();
+      });
+    });
+
+    // 自訂時間
+    customTimeBtn.addEventListener('click', () => {
+      const mins = parseInt(customMinutes.value) || 0;
+      const secs = parseInt(customSeconds.value) || 0;
+      
+      if (mins === 0 && secs === 0) return;
+      
+      document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+      
+      totalSeconds = mins * 60 + secs;
+      remainingSeconds = totalSeconds;
+      updateDisplay();
+      resetTimer();
+      
+      customMinutes.value = '';
+      customSeconds.value = '';
+    });
+
+    // 自訂場景
+    customSceneBtn.addEventListener('click', () => {
+      const sceneName = customSceneInput.value.trim();
+      if (!sceneName) return;
+      
+      document.querySelectorAll('.scene-btn').forEach(b => b.classList.remove('active'));
+      currentScene = sceneName;
+      updateSceneLabel();
+      customSceneInput.value = '';
+    });
+
+    // Element SDK 實作
+    async function onConfigChange(newConfig) {
+      const fontStack = `${newConfig.font_family || defaultConfig.font_family}, system-ui, -apple-system, sans-serif`;
+      const baseSize = newConfig.font_size || defaultConfig.font_size;
+
+      // 更新標題
+      timerTitle.textContent = newConfig.timer_title || defaultConfig.timer_title;
+      timerTitle.style.fontFamily = fontStack;
+      timerTitle.style.fontSize = `${baseSize * 3.125}px`;
+
+      // 更新訊息
+      completionMessage.textContent = newConfig.completion_message || defaultConfig.completion_message;
+      completionMessage.style.fontFamily = fontStack;
+      completionMessage.style.fontSize = `${baseSize * 2.5}px`;
+
+      loopMessage.textContent = newConfig.loop_message || defaultConfig.loop_message;
+      loopMessage.style.fontFamily = fontStack;
+      loopMessage.style.fontSize = `${baseSize * 1.875}px`;
+
+      // 更新計時器
+      timerDisplay.style.fontFamily = fontStack;
+      timerDisplay.style.fontSize = `${baseSize * 5}px`;
+      
+      timerLabel.style.fontFamily = fontStack;
+      timerLabel.style.fontSize = `${baseSize * 1.25}px`;
+
+      // 更新按鈕和輸入框
+      const allButtons = document.querySelectorAll('button');
+      allButtons.forEach(btn => {
+        btn.style.fontFamily = fontStack;
+        btn.style.fontSize = `${baseSize * 1.125}px`;
+      });
+
+      const allInputs = document.querySelectorAll('input');
+      allInputs.forEach(input => {
+        input.style.fontFamily = fontStack;
+        input.style.fontSize = `${baseSize}px`;
+      });
+
+      // 更新顏色
+      const textColor = newConfig.text_color || defaultConfig.text_color;
+      timerTitle.style.color = textColor;
+      timerDisplay.style.color = textColor;
+      timerLabel.style.color = textColor;
+      completionMessage.style.color = textColor;
+      loopMessage.style.color = textColor;
+
+      // 更新漸層背景
+      const gradStart = newConfig.background_gradient_start || defaultConfig.background_gradient_start;
+      const gradMid1 = newConfig.background_gradient_mid1 || defaultConfig.background_gradient_mid1;
+      const gradMid2 = newConfig.background_gradient_mid2 || defaultConfig.background_gradient_mid2;
+      const gradEnd = newConfig.background_gradient_end || defaultConfig.background_gradient_end;
+      
+      app.style.background = `linear-gradient(-45deg, ${gradStart}, ${gradMid1}, ${gradMid2}, ${gradEnd})`;
+      app.style.backgroundSize = '400% 400%';
+    }
+
+    function mapToCapabilities(cfg) {
+      return {
+        recolorables: [
+          {
+            get: () => cfg.background_gradient_start || defaultConfig.background_gradient_start,
+            set: (value) => {
+              cfg.background_gradient_start = value;
+              if (window.elementSdk) window.elementSdk.setConfig({ background_gradient_start: value });
+            }
+          },
+          {
+            get: () => cfg.background_gradient_mid1 || defaultConfig.background_gradient_mid1,
+            set: (value) => {
+              cfg.background_gradient_mid1 = value;
+              if (window.elementSdk) window.elementSdk.setConfig({ background_gradient_mid1: value });
+            }
+          },
+          {
+            get: () => cfg.background_gradient_mid2 || defaultConfig.background_gradient_mid2,
+            set: (value) => {
+              cfg.background_gradient_mid2 = value;
+              if (window.elementSdk) window.elementSdk.setConfig({ background_gradient_mid2: value });
+            }
+          },
+          {
+            get: () => cfg.background_gradient_end || defaultConfig.background_gradient_end,
+            set: (value) => {
+              cfg.background_gradient_end = value;
+              if (window.elementSdk) window.elementSdk.setConfig({ background_gradient_end: value });
+            }
+          },
+          {
+            get: () => cfg.text_color || defaultConfig.text_color,
+            set: (value) => {
+              cfg.text_color = value;
+              if (window.elementSdk) window.elementSdk.setConfig({ text_color: value });
+            }
+          }
+        ],
+        borderables: [],
+        fontEditable: {
+          get: () => cfg.font_family || defaultConfig.font_family,
+          set: (value) => {
+            cfg.font_family = value;
+            if (window.elementSdk) window.elementSdk.setConfig({ font_family: value });
+          }
+        },
+        fontSizeable: {
+          get: () => cfg.font_size || defaultConfig.font_size,
+          set: (value) => {
+            cfg.font_size = value;
+            if (window.elementSdk) window.elementSdk.setConfig({ font_size: value });
+          }
+        }
+      };
+    }
+
+    function mapToEditPanelValues(cfg) {
+      return new Map([
+        ["timer_title", cfg.timer_title || defaultConfig.timer_title],
+        ["completion_message", cfg.completion_message || defaultConfig.completion_message],
+        ["loop_message", cfg.loop_message || defaultConfig.loop_message]
+      ]);
+    }
+
+    // 初始化 SDK
+    if (window.elementSdk) {
+      window.elementSdk.init({
+        defaultConfig,
+        onConfigChange,
+        mapToCapabilities,
+        mapToEditPanelValues
+      });
+      config = window.elementSdk.config;
+    }
+
+    // 更新現在時間
+    function updateCurrentTime() {
+      const now = new Date();
+      const hours = now.getHours().toString().padStart(2, '0');
+      const minutes = now.getMinutes().toString().padStart(2, '0');
+      const seconds = now.getSeconds().toString().padStart(2, '0');
+      const year = now.getFullYear();
+      const month = (now.getMonth() + 1).toString();
+      const day = now.getDate().toString();
+      
+      const timeDisplay = document.getElementById('time-display');
+      const dateDisplay = document.getElementById('date-display');
+      
+      if (timeDisplay) timeDisplay.textContent = `${hours}:${minutes}:${seconds}`;
+      if (dateDisplay) dateDisplay.textContent = `${year}年${month}月${day}日`;
+    }
+    
+    // 每秒更新時間
+    updateCurrentTime();
+    setInterval(updateCurrentTime, 1000);
+
+    // 初始渲染
+    updateDisplay();
+    onConfigChange(config);
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9b3738f63460f1e0',t:'MTc2NjY1NDAwNy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>

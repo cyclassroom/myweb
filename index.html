@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CYIT Classroom 國中資訊科技教學</title>
+    
+    <!-- ★★★ 網站小圖示 (Favicon) ★★★ -->
+    <link rel="icon" href="img/favicon.png" type="image/png">
+
+    <!-- 1. 基礎設定：Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- 2. 引入 React 核心 -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- 3. 引入 Babel (編譯 JSX) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- 注意：已移除 Lucide CDN，改用內建圖示以確保 100% 穩定性 -->
+
+    <style>
+        body { margin: 0; cursor: none; background-color: #050505; }
+        
+        /* 自定義 Hacker 風格卷軸 */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #050505; border-left: 1px solid #111; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #15803d; border-radius: 0; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #22c55e; }
+        
+        /* 動畫定義 */
+        @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+        .animate-marquee { animation: marquee 20s linear infinite; }
+        
+        @keyframes glitch-shake {
+            0% { transform: translate(0, 0); }
+            25% { transform: translate(-1px, 1px); }
+            50% { transform: translate(1px, -1px); }
+            75% { transform: translate(-1px, -1px); }
+            100% { transform: translate(0, 0); }
+        }
+        .hover-glitch:hover { animation: glitch-shake 0.3s cubic-bezier(.36,.07,.19,.97) both; z-index: 20; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // 取得 React Hook
+        const { useState, useEffect, useRef } = React;
+        
+        // ==========================================
+        // 內建圖示系統 (Internal Icon System)
+        // 解決 CDN 相容性問題，直接將 SVG 路徑寫入
+        // ==========================================
+        
+        const IconBase = ({ size = 24, color = "currentColor", children, className = "" }) => (
+            <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                width={size} 
+                height={size} 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke={color} 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round"
+                className={className}
+            >
+                {children}
+            </svg>
+        );
+
+        const Terminal = (p) => <IconBase {...p}><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></IconBase>;
+        const Database = (p) => <IconBase {...p}><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></IconBase>;
+        const Activity = (p) => <IconBase {...p}><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></IconBase>;
+        const Code = (p) => <IconBase {...p}><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></IconBase>;
+        const PenTool = (p) => <IconBase {...p}><path d="m12 19 7-7 3 3-7 7-3-3z"></path><path d="m18 13-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path><path d="m2 2 7.586 7.586"></path><circle cx="11" cy="11" r="2"></circle></IconBase>;
+        const Shield = (p) => <IconBase {...p}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></IconBase>;
+        const Zap = (p) => <IconBase {...p}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></IconBase>;
+        const ExternalLink = (p) => <IconBase {...p}><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></IconBase>;
+        const ChevronRight = (p) => <IconBase {...p}><polyline points="9 18 15 12 9 6"></polyline></IconBase>;
+        const ArrowRight = (p) => <IconBase {...p}><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></IconBase>;
+        const Github = (p) => <IconBase {...p}><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"></path><path d="M9 18c-4.51 2-5-2-7-2"></path></IconBase>;
+        const Users = (p) => <IconBase {...p}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></IconBase>;
+        const FileSpreadsheet = (p) => <IconBase {...p}><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" /><path d="M14 2v5a1 1 0 0 0 1 1h5" /> <path d="M8 13h2" /><path d="M14 13h2" /> <path d="M8 17h2" /><path d="M14 17h2" /></IconBase>
+        const User = (p) => <IconBase {...p}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></IconBase>;
+        const ToolCase = (p) => (<IconBase {...p}><path d="M10 15h4" /><path d="m14.817 10.995-.971-1.45 1.034-1.232a2 2 0 0 0-2.025-3.238l-1.82.364L9.91 3.885a2 2 0 0 0-3.625.748L6.141 6.55l-1.725.426a2 2 0 0 0-.19 3.756l.657.27" /><path d="m18.822 10.995 2.26-5.38a1 1 0 0 0-.557-1.318L16.954 2.9a1 1 0 0 0-1.281.533l-.924 2.122" /><path d="M4 12.006A1 1 0 0 1 4.994 11H19a1 1 0 0 1 1 1v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" /></IconBase>
+);
+
+        // ==========================================
+        // 資料設定區
+        // ==========================================
+
+        const SYSTEM_LOGS = [
+            { id: 114, date: '2025.12.25', category: 'TOOLS', title: '新增實用小工具模組', highlight: true },
+            { id: 113, date: '2025.12.25', category: 'LOGIC', title: 'Scratch動畫與遊戲:小遊戲Whack A Mole Game', highlight: true },
+            { id: 112, date: '2025.12.14', category: 'DECODE', title: '解鎖電腦的術士:程式語言簡介', highlight: true },
+            { id: 111, date: '2025.12.11', category: 'QUIZSYSTEM', title: 'Quizsystem:新增檢測與測驗模組', highlight: true },
+            { id: 110, date: '2025.12.07', category: 'DECODE', title: 'Platform: 系統平台進化事件簿', link: 'https://clitclassroom.github.io/platform/platformP3.html',highlight: true },
+            { id: 109, date: '2025.11.30', category: 'DECODE', title: 'Algorithm: 演算法特攻', link: 'https://clitclassroom.github.io/algorithm/algorithm.html',highlight: true },
+            { id: 108, date: '2025.11.30', category: 'GAME', title: 'SIMULATION READY: 星際演算法英雄', link: 'https://clitclassroom.github.io/algorithm/algogame.html', highlight: true },
+            { id: 107, date: '2025.11.26', category: 'GAME', title: 'SIMULATION READY: 核心保衛戰', link: 'https://clitclassroom.github.io/platform/platformp2_game.html', highlight: true },
+            { id: 106, date: '2025.11.26', category: 'DECODE', title: 'Platform: 硬體演進 x 系統平台大解密', link: 'https://clitclassroom.github.io/platform/platformP2.html',highlight: true },
+            { id: 105, date: '2025.11.23', category: 'SYSTEM', title: 'CYIT Classroom V1.0.1 指揮中心上線', highlight: true },
+            { id: 104, date: '2025.11.22', category: 'DECODE', title: 'Platform: 系統平台大冒險 課程更新', link: 'https://clitclassroom.github.io/platform/platformP1.html', highlight: false },
+            { id: 103, date: '2025.11.21', category: 'SECURITY', title: 'DETECTED: 惡意程式與資訊安全 (Malware and Cyber Security) 課程更新', link: 'https://clitclassroom.github.io/malware/malware_security.html', highlight: false },
+            { id: 102, date: '2025.11.20', category: 'GAME', title: 'SIMULATION READY: 惡意源碼配對戰已部屬', link: 'https://clitclassroom.github.io/malware/malwaregame.html', highlight: true },
+            { id: 101, date: '2025.11.19', category: 'MEDIA', title: 'LOADED: PhotoCap 製作大頭照教學', link: 'https://mushroomonthehill.github.io/PhotoCap/headalbum.html', highlight: false },
+        ];
+
+        const CORE_STATUS = {
+            active: true,
+            level: 'WARNING',
+            message: '注意：近期釣魚郵件攻擊頻繁，請詳閱「網路攻防」模組中的最新防護指南。 ///新增實用小工具模組。 ///更新程式邏輯架構-Scratch課程。 ///解鎖電腦的術式:程式語言簡介。 ///新增檢測與測驗系統模組。 ///系統平台進化事件簿上線。 /// 演算法特攻新上線。 ///核心保衛戰新上線。 ///系統平台大冒險上線。 /// 114上資訊課程陸續更新中，請注意作業繳交期限。'
+        };
+
+        const MODULES = [
+            {
+                id: 'core', name: '系統核心整備', sub: 'System Core Setup',
+                icon: <Database size={24} />, color: 'text-blue-400', borderColor: 'border-blue-400/50', shadowColor: 'rgba(96, 165, 250, 0.4)',
+                description: '基礎操作、上課規範、Office 生產力工具',
+                links: [
+                    { title: '資訊課上課規則', url: 'https://sites.google.com/ttjhs.ntct.edu.tw/careycomputer/%E8%B3%87%E8%A8%8A%E8%AA%B2%E4%B8%8A%E8%AA%B2%E8%A6%8F%E5%89%87' },
+                    { title: '認識鍵盤', url: 'https://sites.google.com/ttjhs.ntct.edu.tw/careycomputer/%E8%AA%8D%E8%AD%98%E9%8D%B5%E7%9B%A4' },
+                    { title: '電腦硬體中英文對照', url: 'https://hackmd.io/@careylin73/computerhardware' },
+                    { title: 'Windows 快速鍵', url: 'https://hackmd.io/@careylin73/windowskeys' },
+                    { title: 'Classroom 及 Meet 使用指南', url: 'https://sites.google.com/ttjhs.ntct.edu.tw/careycomputer/classroom-meet/classroom-%E5%8F%8A-meet-%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97' },
+                    { title: '基礎操作：中英打練習', url: 'https://sites.google.com/ttjhs.ntct.edu.tw/careycomputer/%E9%9B%BB%E8%85%A6%E6%89%93%E5%AD%97%E7%B7%B4%E7%BF%92%E8%8B%B1%E6%96%87%E6%89%93%E5%AD%97' },
+                    { title: '辦公室協作：Google 表單', url: 'https://sites.google.com/ttjhs.ntct.edu.tw/careycomputer/google%E8%A1%A8%E5%96%AE%E8%A3%BD%E4%BD%9C' },
+                    { title: '教育帳號建立說明', url: 'https://sites.google.com/ttjhs.ntct.edu.tw/careycomputer/%E6%95%99%E8%82%B2%E5%B8%B3%E8%99%9F%E5%BB%BA%E7%AB%8B%E8%AA%AA%E6%98%8E' },
+                    { title: 'Word教學', url: 'https://hackmd.io/@careylin73/word01' },
+                    { title: '簡報教學PowerPoint', url: 'https://hackmd.io/@careylin73/ppthowto' },
+                ]
+            },
+            {
+                id: 'decode', name: '數位情報解碼', sub: 'Digital Intelligence',
+                icon: <Activity size={24} />, color: 'text-purple-400', borderColor: 'border-purple-400/50', shadowColor: 'rgba(192, 132, 252, 0.4)',
+                description: '資訊科學概念、數據原理、資料數位化',
+                links: [
+                    { title: '資料儲存單位', url: 'https://sites.google.com/ttjhs.ntct.edu.tw/careycomputer/%E8%B3%87%E6%96%99%E5%84%B2%E5%AD%98%E5%96%AE%E4%BD%8D' },
+                    { title: '數位系統-十進位轉換', url: 'https://sites.google.com/ttjhs.ntct.edu.tw/careycomputer/%E6%95%B8%E4%BD%8D%E7%B3%BB%E7%B5%B1-%E5%8D%81%E9%80%B2%E4%BD%8D%E8%BD%89%E6%8F%9B' },
+                    { title: '文字數位化', url: 'https://sites.google.com/ttjhs.ntct.edu.tw/careycomputer/%E6%96%87%E5%AD%97%E6%95%B8%E4%BD%8D%E5%8C%96' },
+                    { title: '聲音數位化', url: 'https://sites.google.com/ttjhs.ntct.edu.tw/careycomputer/%E8%81%B2%E9%9F%B3%E6%95%B8%E4%BD%8D%E5%8C%96' },
+                    { title: '影像數位化', url: 'https://sites.google.com/ttjhs.ntct.edu.tw/careycomputer/%E5%BD%B1%E5%83%8F%E6%95%B8%E4%BD%8D%E5%8C%96' },
+                    { title: '資訊科技基本概念:探索網路', url: 'https://hackmd.io/@careylin73/aboutweb' },
+                    { title: 'AI人工智慧', url: 'https://hackmd.io/@careylin73/aboutAI' },
+                    { title: 'AI安全使用指南', url: 'https://sites.google.com/ttjhs.ntct.edu.tw/careycomputer/ai%E5%AE%89%E5%85%A8%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97' },
+                    { title: '演算法', url: 'https://sites.google.com/ttjhs.ntct.edu.tw/careycomputer/%E6%BC%94%E7%AE%97%E6%B3%95' },
+                    { title: '簡易替換式密碼系統', url: 'https://sites.google.com/ttjhs.ntct.edu.tw/careycomputer/%E8%B3%87%E8%A8%8A%E7%A7%91%E6%8A%80%E7%9B%B8%E9%97%9C/%E7%B0%A1%E6%98%93%E6%9B%BF%E6%8F%9B%E5%BC%8F%E5%AF%86%E7%A2%BC%E7%B3%BB%E7%B5%B1' },
+                    { title: '恐龍遊戲Dinosaur Game', url: 'https://sites.google.com/ttjhs.ntct.edu.tw/careycomputer/%E8%B3%87%E8%A8%8A%E7%A7%91%E6%8A%80%E7%9B%B8%E9%97%9C/%E6%81%90%E9%BE%8D%E9%81%8A%E6%88%B2dinosaur-game' },
+                    { title: '系統平台Part1:系統平台大冒險', url: 'https://clitclassroom.github.io/platform/platformP1.html', tag: 'NEW'},
+                    { title: '系統平台Part2:硬體演進 x 系統平台大解密', url: 'https://clitclassroom.github.io/platform/platformP2.html', tag: 'NEW'},
+                    { title: '演算法特攻', url: 'https://clitclassroom.github.io/algorithm/algorithm.html', tag: 'NEW'},
+                    { title: '系統平台Part3:系統平台進化事件簿', url: 'https://clitclassroom.github.io/platform/platformP3.html', tag: 'NEW'},
+                    { title: '解鎖電腦的術式:程式語言簡介', url: 'https://clitclassroom.github.io/coding/aboutcoding.html', tag: 'NEW'},
+                ]
+            },
+            {
+                id: 'logic', name: '程式邏輯架構', sub: 'Logic & Structure',
+                icon: <Code size={24} />, color: 'text-green-400', borderColor: 'border-green-400/50', shadowColor: 'rgba(74, 222, 128, 0.4)',
+                description: 'Python, Scratch, AI2, 實體控制',
+                links: [
+                    { title: 'Python 程式設計入門', url: 'https://hackmd.io/@careylin73/aboutpython#Python%E7%A8%8B%E5%BC%8F%E8%A8%AD%E8%A8%88' },
+                    { title: 'Scratch 動畫與遊戲', url: 'https://sites.google.com/ttjhs.ntct.edu.tw/scratch-drawing/%E9%A6%96%E9%A0%81', tag:'NEW' },
+                    { title: 'App Inventor 2 手機程式', url: 'https://sites.google.com/ttjhs.ntct.edu.tw/appinvetor/ai2-%E5%B8%B3%E8%99%9F%E8%A8%BB%E5%86%8A' },
+                    { title: 'NKNUBlock 硬體控制', url: 'https://sites.google.com/go.edu.tw/nknublock4060/%E9%A6%96%E9%A0%81' },
+                ]
+            },
+            {
+                id: 'media', name: '創意媒體專案', sub: 'Creative Media',
+                icon: <PenTool size={24} />, color: 'text-yellow-400', borderColor: 'border-yellow-400/50', shadowColor: 'rgba(250, 204, 21, 0.4)',
+                description: '平面設計、影音剪輯、雷切實作',
+                links: [
+                    { title: '關於色彩', url: 'https://hackmd.io/@careylin73/aboutcolors' },
+                    { title: 'Canva 設計實戰', url: 'https://www.youtube.com/playlist?list=PLPKCAOepXwiJxMX1fY0w-w9Hxj45SDHz-' },
+                    { title: '威力導演影片剪輯', url: 'https://sites.google.com/go.edu.tw/powerdirectorteaching' },
+                    { title: 'Youtube影片上傳教學', url: 'https://sites.google.com/go.edu.tw/videouploadteaching' },
+                    { title: '雷切小夜燈實作', url: 'https://sites.google.com/ttjhs.ntct.edu.tw/nightlamps/%E9%A6%96%E9%A0%81' },
+                    { title: 'PhotoCap 大頭照製作', url: 'https://clitclassroom.github.io/PhotoCap/headalbum.html', tag: 'NEW'},
+                ]
+            },
+            {
+                id: 'security', name: '網路攻防與資安', sub: 'Cyber Defense',
+                icon: <Shield size={24} />, color: 'text-red-500', borderColor: 'border-red-500/50', shadowColor: 'rgba(239, 68, 68, 0.6)',
+                // 移除 isHighlight: true，讓它回復正常寬度，以便與指揮官模組並排
+                description: '惡意程式、資訊安全、網路安全、駭客挑戰', 
+                links: [
+                    { title: '惡意程式與資訊安全 (新版)', url: 'https://clitclassroom.github.io/malware/malware_security.html', tag: 'NEW'},
+                    { title: '假訊息與假新聞', url: 'https://hackmd.io/@careylin73/fakenews' },
+                    { title: 'AI 安全使用指南', url: 'https://sites.google.com/ttjhs.ntct.edu.tw/careycomputer/ai%E5%AE%89%E5%85%A8%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97' },
+                ]
+            },
+            {
+                id: 'quizsystem', name: '檢測與測驗系統', sub: 'Test/Quiz System',
+                icon: <FileSpreadsheet size={24} />, color: 'text-slate-400', borderColor: 'border-slate-00/50', shadowColor: 'rgba(148, 163, 184, 0.4)',
+                // 移除 isHighlight: true，讓它回復正常寬度，以便與指揮官模組並排
+                description: '檢測及測驗系統、期末考題庫', 
+                links: [
+                    { title: 'Core Code資訊獵手-九年級 (114上九年級資科複習)', url: 'https://clitclassroom.github.io/quizsystem/11401G9final.html', tag: 'NEW'},
+                    { title: 'Core Code資訊獵手-七年級 (114上七年級資科複習)', url: 'https://clitclassroom.github.io/quizsystem/11401G7final.html', tag: 'NEW'},
+                    { title: '線上測驗系統-九年級 (114上九年級資科複習)', url: 'https://clitclassroom.github.io/quizsystem/114S1G9finalplatform.html', tag: 'NEW'},
+                    { title: '線上測驗系統-七年級 (114上七年級資科複習)', url: 'https://clitclassroom.github.io/quizsystem/114S1G7finalplatform.html', tag: 'NEW'},
+                ]
+            },
+            {
+                // 實用小工具模組
+                id: 'tools', name: '實用小工具', sub: 'Online Tools',
+                icon: <ToolCase size={24} />, color: 'text-stone-400', borderColor: 'border-stone-400/50', shadowColor: 'rgba(239, 68, 68, 0.6)',
+                description: '線上實用小工具', 
+                links: [
+                    { title: 'PDF 試題轉 Excel 轉換器', url: 'https://clitclassroom.github.io/tools/pdf_exam_converter.html', tag: 'NEW'},
+                    { title: '線上計時器(小時版)', url: 'https://clitclassroom.github.io/tools/onlinetimerHour.html', tag:'NEW'},
+                    { title: '線上計時器(分鐘版)', url: 'https://clitclassroom.github.io/tools/onlinetimerMin.html', tag:'NEW' },
+                ]
+            },
+            { 
+                // 指揮官模組
+                id: 'commander', name: '關於指揮官', sub: 'Commander Profile',
+                icon: <User size={24} />, color: 'text-cyan-400', borderColor: 'border-cyan-400/50', shadowColor: 'rgba(34, 211, 238, 0.4)',
+                description: 'About Carey - 國中資訊科技教師',
+                links: [
+                    { title: 'Carey 的資訊科技教室', url: 'https://sites.google.com/ttjhs.ntct.edu.tw/careycomputer', type: 'external_highlight' , tag: '舊站'},
+                    { title: 'Carey@Youtube 頻道', url: 'https://www.youtube.com/@usercareyschannel', type: 'external_highlight' },
+                    { title: 'Carey@Hackmd 筆記', url: 'https://hackmd.io/@careylin73', type: 'external_highlight' },
+                ]
+            }
+        ];
+
+        const SIMULATIONS = [
+            { title: '程式語言大冒險(七年級)', sub: 'CODE RUNNER', url: 'https://clitclassroom.github.io/coding/coderunner.html', color: 'bg-yellow-600 hover:bg-yellow-500', status: 'COMBAT READY' },
+            { title: '資訊獵手(九年級)', sub: 'CORE CODE G9', url: 'https://clitclassroom.github.io/quizsystem/11401G9final.html', color: 'bg-lime-600 hover:bg-lime-500', status: 'COMBAT READY' },
+            { title: '資訊獵手(七年級)', sub: 'CORE CODE G7', url: 'https://clitclassroom.github.io/quizsystem/11401G7final.html', color: 'bg-green-600 hover:bg-green-500', status: 'COMBAT READY' },
+            { title: '星際演算法英雄', sub: 'PIXEL ALGO HEROES', url: 'https://clitclassroom.github.io/algorithm/algogame.html', color: 'bg-emerald-600 hover:bg-emerald-500', status: 'COMBAT READY' },
+            { title: '核心保衛戰', sub: 'CYBER CORE DEFENDER', url: 'https://clitclassroom.github.io/platform/platformp2_game.html', color: 'bg-teal-600 hover:bg-teal-500', status: 'COMBAT READY' },
+            { title: '惡意源碼配對戰', sub: 'MALWARE BATTLE', url: 'https://clitclassroom.github.io/malware/malwaregame.html', color: 'bg-cyan-600 hover:bg-cyan-500', status: 'COMBAT READY' },
+            { title: '系統平台大冒險', sub: 'SYSTEM PLATFORM', url: 'https://clitclassroom.github.io/platform/platformP1.html', color: 'bg-sky-600 hover:bg-sky-500', status: 'ONLINE' },
+            { title: '數位生活大挑戰', sub: 'The Digital Life Challenge', url: 'https://sites.google.com/ttjhs.ntct.edu.tw/careycomputer/%E6%95%B8%E4%BD%8D%E7%94%9F%E6%B4%BB%E5%A4%A7%E6%8C%91%E6%88%B0', color: 'bg-blue-600 hover:bg-blue-500', status: 'ONLINE' }
+        ];
+
+        // ==========================================
+        // 主程式邏輯
+        // ==========================================
+
+        const App = () => {
+            const [activeModule, setActiveModule] = useState(null);
+            const [bootSequence, setBootSequence] = useState(true);
+            const [currentTime, setCurrentTime] = useState(new Date());
+            const [onlineCount, setOnlineCount] = useState(128);
+            const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+            const [cursorVariant, setCursorVariant] = useState("default");
+
+            // 系統初始化與計時器
+            useEffect(() => {
+                const timer = setTimeout(() => setBootSequence(false), 2000);
+                const clock = setInterval(() => setCurrentTime(new Date()), 1000);
+                const userTimer = setInterval(() => {
+                    setOnlineCount(prev => Math.max(80, Math.min(250, prev + (Math.floor(Math.random() * 7) - 3))));
+                }, 4000);
+                return () => { clearTimeout(timer); clearInterval(clock); clearInterval(userTimer); };
+            }, []);
+
+            // 滑鼠追蹤
+            useEffect(() => {
+                const mouseMove = (e) => setMousePos({ x: e.clientX, y: e.clientY });
+                window.addEventListener("mousemove", mouseMove);
+                return () => window.removeEventListener("mousemove", mouseMove);
+            }, []);
+
+            const formatTime = (date) => date.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const cursorEnterLink = () => setCursorVariant("text");
+            const cursorLeave = () => setCursorVariant("default");
+
+            // 開機動畫
+            if (bootSequence) {
+                return (
+                    <div className="min-h-screen bg-black text-green-500 font-mono flex flex-col items-center justify-center p-4 cursor-none">
+                        <div className="text-2xl mb-4 animate-pulse">INITIALIZING CYIT PROTOCOL...</div>
+                        <div className="w-64 h-2 bg-gray-800 rounded overflow-hidden border border-green-900">
+                            <div className="h-full bg-green-500 animate-[width_2s_ease-in-out] w-full"></div>
+                        </div>
+                        <div className="mt-2 text-xs text-green-700">
+                            {'>'} LOADING MODULES... OK<br/>
+                            {'>'} CHECKING SECURITY... OK<br/>
+                            {'>'} ESTABLISHING LINK... SUCCESS
+                        </div>
+                    </div>
+                );
+            }
+
+            // 主介面
+            return (
+                <div className="min-h-screen bg-[#050505] text-gray-200 font-sans selection:bg-green-500 selection:text-black overflow-x-hidden relative cursor-none">
+                    {/* 游標效果 */}
+                    <div className="fixed top-0 left-0 w-2 h-2 bg-green-500 rounded-full pointer-events-none z-[9999] mix-blend-difference" style={{ transform: `translate(${mousePos.x - 4}px, ${mousePos.y - 4}px)` }} />
+                    <div className="fixed top-0 left-0 w-8 h-8 border border-green-500/50 rounded-full pointer-events-none z-[9998] transition-transform duration-100 ease-out flex items-center justify-center"
+                        style={{ transform: `translate(${mousePos.x - 16}px, ${mousePos.y - 16}px) scale(${cursorVariant === "text" ? 1.5 : 1})`, borderColor: cursorVariant === "text" ? '#22c55e' : 'rgba(34, 197, 94, 0.5)' }}>
+                        <div className="absolute w-full h-[1px] bg-green-500/20"></div>
+                        <div className="absolute h-full w-[1px] bg-green-500/20"></div>
+                    </div>
+
+                    {/* 背景網格 */}
+                    <div className="fixed inset-0 pointer-events-none z-0 opacity-10" style={{ backgroundImage: 'linear-gradient(#00ff41 1px, transparent 1px), linear-gradient(90deg, #00ff41 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
+                    
+                    {/* Header */}
+                    <header className="relative z-10 border-b border-gray-800 bg-[#0a0a0a]/90 backdrop-blur-md sticky top-0">
+                        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+                            <div className="flex items-center gap-3 group cursor-none" onClick={() => setActiveModule(null)} onMouseEnter={cursorEnterLink} onMouseLeave={cursorLeave}>
+                                <div className="w-10 h-10 bg-green-900/20 border border-green-500/50 flex items-center justify-center rounded relative overflow-hidden group-hover:border-green-400 transition-colors">
+                                    <Terminal size={20} className="text-green-400" />
+                                    <div className="absolute inset-0 bg-green-400/10 animate-pulse"></div>
+                                </div>
+                                <div>
+                                    <h1 className="text-xl font-bold tracking-wider text-white font-mono">CYIT<span className="text-green-500">_CLASSROOM</span></h1>
+                                    <p className="text-[10px] text-green-600 tracking-[0.2em] uppercase">國中資訊科技教學:System Ready</p>
+                                </div>
+                            </div>
+                            
+                            <div className="hidden md:flex items-center gap-6 font-mono text-sm text-green-500/80">
+                                <div className="flex items-center gap-2">
+                                    <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                                    NET: SECURE
+                                </div>
+                                <div className="flex items-center gap-2 border-l border-gray-800 pl-6">
+                                    <Users size={14} className="text-green-500" />
+                                    <span>CREW ONBOARD: <span className="text-green-400 font-bold">{onlineCount}</span></span>
+                                </div>
+                                <div className="border-l border-gray-800 pl-6">
+                                    {formatTime(currentTime)}
+                                </div>
+                            </div>
+                        </div>
+                    </header>
+
+                    {/* 跑馬燈 */}
+                    {CORE_STATUS.active && (
+                        <div className={`relative z-10 overflow-hidden ${CORE_STATUS.level === 'WARNING' ? 'bg-red-900/20 border-y border-red-900/50' : 'bg-blue-900/20'} py-1`}>
+                            <div className="whitespace-nowrap animate-marquee inline-block">
+                                {[1,2,3].map(i => (
+                                    <span key={i} className={`mx-4 font-mono font-bold ${CORE_STATUS.level === 'WARNING' ? 'text-red-400' : 'text-blue-400'}`}>
+                                        [{CORE_STATUS.level}] {CORE_STATUS.message}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    <main className="relative z-10 max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+                        {/* 左側欄 */}
+                        <div className="lg:col-span-4 space-y-6">
+                            <div className="bg-[#0a0a0a] border border-green-900/50 rounded-lg overflow-hidden shadow-[0_0_15px_rgba(0,255,65,0.05)]">
+                                <div className="bg-gray-900/50 px-4 py-2 border-b border-green-900/30 flex justify-between items-center">
+                                    <h3 className="text-sm font-mono text-green-500 flex items-center gap-2"><Activity size={14} /> SYSTEM_LOG</h3>
+                                    <span className="text-[10px] text-gray-500">v1.0.1</span>
+                                </div>
+                                <div className="p-4 h-[300px] overflow-y-auto font-mono text-xs custom-scrollbar">
+                                    {SYSTEM_LOGS.map((log) => (
+                                        <div key={log.id} className={`mb-3 pb-2 border-b border-dashed border-gray-800 last:border-0 ${log.highlight ? 'opacity-100' : 'opacity-70 hover:opacity-100'} transition-opacity`}>
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <span className="text-green-700">[{log.date}]</span>
+                                                <span className={`px-1 rounded text-[10px] ${log.highlight ? 'bg-green-500 text-black font-bold' : 'bg-gray-800 text-gray-400'}`}>{log.category}</span>
+                                            </div>
+                                            <div className="text-gray-300 pl-2 border-l-2 border-gray-800 hover:border-green-500 transition-colors group">
+                                                <a href={log.link || "#"} target={log.link ? "_blank" : "_self"} className="group-hover:text-green-400 transition-colors block cursor-none" onMouseEnter={cursorEnterLink} onMouseLeave={cursorLeave}>
+                                                    <span className="mr-1">{">>>"}</span> {log.title}
+                                                </a>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <div className="animate-pulse text-green-500 mt-4">_ Awaiting input...</div>
+                                </div>
+                            </div>
+                            <div className="grid gap-4">
+                                {SIMULATIONS.map((sim, idx) => (
+                                    <a key={idx} href={sim.url} target="_blank" onMouseEnter={cursorEnterLink} onMouseLeave={cursorLeave}
+                                        className={`block group relative overflow-hidden rounded-lg p-1 transition-transform hover:scale-[1.02] cursor-none ${sim.color === 'bg-red-600 hover:bg-red-500' ? 'shadow-[0_0_20px_rgba(220,38,38,0.4)]' : 'shadow-[0_0_20px_rgba(37,99,235,0.4)]'}`}>
+                                        <div className={`${sim.color} h-full w-full rounded p-4 flex justify-between items-center relative z-10`}>
+                                            <div>
+                                                <div className="text-[10px] text-white/80 tracking-widest font-mono mb-1">{sim.sub}</div>
+                                                <div className="text-xl font-black text-white italic tracking-tighter">{sim.title}</div>
+                                            </div>
+                                            <div className="bg-black/20 p-2 rounded-full group-hover:bg-black/40 transition-colors"><Zap size={24} className="text-white" /></div>
+                                        </div>
+                                        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
+                                    </a>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* 右側主控台 */}
+                        <div className="lg:col-span-8">
+                            {activeModule ? (
+                                <div className="h-full flex flex-col">
+                                    <button onClick={() => setActiveModule(null)} onMouseEnter={cursorEnterLink} onMouseLeave={cursorLeave} className="mb-4 flex items-center gap-2 text-green-500 hover:text-green-400 transition-colors font-mono text-sm cursor-none w-fit">&lt; RETURN_TO_DASHBOARD</button>
+                                    <div className={`flex-1 bg-[#0a0a0a] border ${activeModule.borderColor} rounded-xl p-6 relative overflow-hidden`}>
+                                        <div className={`absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-${activeModule.color.split('-')[1]}-900/20 to-transparent rounded-bl-full opacity-50 pointer-events-none`}></div>
+                                        <div className="relative z-10">
+                                            <div className="flex items-center gap-4 mb-6 pb-6 border-b border-gray-800">
+                                                <div className={`p-4 rounded-lg bg-gray-900 ${activeModule.color}`}>{activeModule.icon}</div>
+                                                <div><h2 className="text-3xl font-bold text-white">{activeModule.name}</h2><p className={`font-mono text-sm ${activeModule.color} opacity-80`}>{activeModule.sub}</p></div>
+                                            </div>
+                                            <div className="grid md:grid-cols-2 gap-4">
+                                                {activeModule.links.map((link, i) => (
+                                                    <a key={i} href={link.url} target="_blank" onMouseEnter={cursorEnterLink} onMouseLeave={cursorLeave} className={`group flex items-start gap-3 p-4 rounded bg-gray-900/40 border border-gray-800 hover:border-${activeModule.color.split('-')[1]}-500/50 transition-all hover:bg-gray-900/80 cursor-none`}>
+                                                        <div className="mt-1 text-gray-500 group-hover:text-white transition-colors"><ChevronRight size={16} /></div>
+                                                        <div>
+                                                            <div className="flex items-center gap-2"><h4 className="text-gray-200 font-bold group-hover:text-white transition-colors">{link.title}</h4>{link.tag && <span className="px-1.5 py-0.5 bg-green-500/20 text-green-400 text-[10px] rounded font-mono">{link.tag}</span>}</div>
+                                                            {link.type === 'external_highlight' && <p className="text-xs text-gray-500 mt-1 flex items-center gap-1"><ExternalLink size={10} /> 外部專案連結</p>}
+                                                        </div>
+                                                    </a>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-full content-start">
+                                    <div className="md:col-span-2 mb-2"><h2 className="text-xl font-bold text-white flex items-center gap-2"><span className="w-1 h-6 bg-green-500 block"></span> COMMAND MODULES</h2></div>
+                                    {MODULES.map((mod) => (
+                                        <div key={mod.id} onClick={() => setActiveModule(mod)} onMouseEnter={cursorEnterLink} onMouseLeave={cursorLeave}
+                                            className={`group relative p-6 bg-[#0e0e0e] border border-gray-800 hover:border-${mod.color.split('-')[1]}-500 transition-all duration-200 rounded-lg cursor-none overflow-hidden hover-glitch ${mod.isHighlight ? 'md:col-span-2 border-red-900/60 bg-red-950/10' : ''}`}
+                                            style={{ '--hover-shadow': `0 0 30px ${mod.shadowColor || 'rgba(34, 197, 94, 0.2)'}` }}>
+                                            <div className={`absolute inset-0 bg-${mod.color.split('-')[1]}-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300`}></div>
+                                            <div className="relative z-10 flex items-start justify-between">
+                                                <div>
+                                                    <div className={`font-mono text-xs mb-2 ${mod.color} opacity-70`}>MODULE_{mod.id.toUpperCase()}</div>
+                                                    <h3 className="text-xl font-bold text-white mb-1 group-hover:translate-x-1 transition-transform">{mod.name}</h3>
+                                                    <p className="text-gray-500 text-sm mb-4 line-clamp-2 h-10">{mod.description}</p>
+                                                </div>
+                                                <div className={`p-3 rounded bg-gray-900/50 ${mod.color} group-hover:scale-125 group-hover:rotate-6 transition-all duration-300 shadow-lg`}>{mod.icon}</div>
+                                            </div>
+                                            <div className="mt-2 flex items-center gap-2 text-xs text-gray-600 font-mono group-hover:text-white transition-colors"><span>ACCESS DATA</span><ArrowRight size={12} className="group-hover:translate-x-2 transition-transform" /></div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </main>
+
+                    <footer className="max-w-7xl mx-auto px-4 py-8 mt-8 border-t border-gray-900 text-center relative z-10">
+                        <p className="text-gray-600 text-sm font-mono">© 2025 CYIT CLASSROOM. SYSTEM STATUS: <span className="text-green-500">OPTIMAL</span>.</p>
+                        <div className="flex items-center justify-center gap-4 mt-4">
+                            <a href="https://github.com" target="_blank" className="text-gray-700 hover:text-white transition-colors flex items-center gap-2 cursor-none" onMouseEnter={cursorEnterLink} onMouseLeave={cursorLeave}>
+                                <Github size={16} /><span className="text-xs">SOURCE_CODE</span>
+                            </a>
+                        </div>
+                        <p className="text-gray-800 text-[10px] mt-2">Concept by Carey | Powered by Github Pages</p>
+                    </footer>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

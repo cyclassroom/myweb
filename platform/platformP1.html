@@ -1,0 +1,1186 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系統平臺大冒險 | CYIT Classroom </title>
+    
+    <!-- 新增網站小圖示 -->
+    <link rel="icon" type="image/png" href="img/favicon.png">
+    
+    <!-- 1. 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 2. 設定字型與 Retro 樣式 -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap'); /* 像素字體 */
+        
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f4f1ea; /* 蘑菇風米色背景 */
+            color: #2c3e50;
+            /* 背景網點顏色調淡 (#e8e4dc) */
+            background-image: radial-gradient(#e8e4dc 2px, transparent 2px);
+            background-size: 15px 15px;
+            cursor: none; /* 隱藏預設游標 */
+        }
+
+        /* --- 自定義科技感滑鼠游標 --- */
+        .cursor-dot,
+        .cursor-outline {
+            position: fixed;
+            top: 0;
+            left: 0;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            z-index: 9999;
+            pointer-events: none;
+        }
+
+        .cursor-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #2c3e50;
+        }
+
+        .cursor-outline {
+            width: 40px;
+            height: 40px;
+            border: 2px solid rgba(44, 62, 80, 0.5);
+            transition: width 0.2s, height 0.2s, background-color 0.2s;
+        }
+
+        /* 懸停在可點擊元素上的狀態 */
+        body.hovering .cursor-outline {
+            width: 60px;
+            height: 60px;
+            background-color: rgba(44, 62, 80, 0.1);
+            border-color: transparent;
+        }
+        
+        /* 點擊瞬間的狀態 */
+        body.clicking .cursor-outline {
+            width: 30px;
+            height: 30px;
+            border-color: #d35400;
+            background-color: rgba(211, 84, 0, 0.1);
+        }
+
+        /* 點擊波紋特效 */
+        .click-ripple {
+            position: absolute;
+            border-radius: 50%;
+            transform: scale(0);
+            animation: ripple 0.6s linear;
+            background-color: rgba(211, 84, 0, 0.3);
+            pointer-events: none;
+            z-index: 9998;
+        }
+
+        @keyframes ripple {
+            to {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+
+        /* Retro/Pixel Art Style Utilities */
+        .retro-border {
+            border: 4px solid #2c3e50;
+        }
+        
+        .retro-shadow {
+            box-shadow: 6px 6px 0px #2c3e50;
+        }
+
+        .retro-card {
+            background-color: white;
+            border: 4px solid #2c3e50;
+            box-shadow: 6px 6px 0px #2c3e50;
+            transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94); /* 更平滑的過渡 */
+            position: relative;
+            overflow: hidden; /* 為了波紋特效 */
+        }
+
+        .retro-card::after { /* 光影掃過特效 */
+            content: "";
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 50%;
+            height: 100%;
+            background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0) 100%);
+            transform: skewX(-25deg);
+            transition: none;
+        }
+
+        .retro-card:hover::after {
+            left: 200%;
+            transition: left 0.6s ease-in-out;
+        }
+
+        .retro-card:hover {
+            transform: translate(-3px, -3px) scale(1.01);
+            box-shadow: 12px 12px 0px #2c3e50;
+            border-color: #34495e;
+        }
+
+        .retro-card:active {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0px #2c3e50;
+        }
+
+        .retro-btn {
+            border: 3px solid #2c3e50;
+            font-weight: 900;
+            transition: all 0.1s;
+            box-shadow: 4px 4px 0px #2c3e50;
+            text-transform: uppercase;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .retro-btn:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 6px 6px 0px #2c3e50;
+        }
+
+        .retro-btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: 0px 0px 0px #2c3e50;
+        }
+
+        /* Tech Grid Background for Game */
+        .tech-bg {
+            background-color: #0f172a;
+            background-image: 
+                linear-gradient(rgba(0, 180, 50, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 180, 50, 0.1) 1px, transparent 1px);
+            background-size: 30px 30px;
+            box-shadow: inset 0 0 50px rgba(0,0,0,0.8);
+        }
+
+        /* Animations */
+        @keyframes pop-in {
+            0% { transform: scale(0.9); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-pop-in {
+            animation: pop-in 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes bounce-slow {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        .animate-bounce-slow {
+            animation: bounce-slow 2s infinite;
+        }
+
+        @keyframes scanline {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100%); }
+        }
+        .scanline::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, transparent 50%, rgba(0, 200, 0, 0.05) 50%);
+            background-size: 100% 4px;
+            pointer-events: none;
+        }
+
+        /* 翻轉卡片 */
+        .rotate-y-180 { transform: rotateY(180deg); }
+        .transform-style-3d { transform-style: preserve-3d; }
+        .backface-hidden { backface-visibility: hidden; }
+        .perspective-1000 { perspective: 1000px; }
+    </style>
+</head>
+<body>
+    <!-- Custom Cursor Elements -->
+    <div class="cursor-dot" data-cursor-dot></div>
+    <div class="cursor-outline" data-cursor-outline></div>
+    
+    <div id="root"></div>
+
+    <script type="module">
+        import React, { useState, useEffect, useRef } from 'https://esm.sh/react@18.2.0';
+        import { createRoot } from 'https://esm.sh/react-dom@18.2.0/client';
+        import { 
+            Book, Cpu, Monitor, Coffee, ArrowRight, Star, CheckCircle, XCircle, 
+            RefreshCw, Brain, Server, HardDrive, Keyboard, Smartphone, Cloud,
+            Zap, LayoutGrid, Trophy, Heart, User, Play, Github
+        } from 'https://esm.sh/lucide-react@0.263.1';
+
+        // --- Mouse Effect Logic (Tech Circle Style) ---
+        const useMouseEffect = () => {
+            useEffect(() => {
+                const cursorDot = document.querySelector('[data-cursor-dot]');
+                const cursorOutline = document.querySelector('[data-cursor-outline]');
+                
+                const moveCursor = (e) => {
+                    const posX = e.clientX;
+                    const posY = e.clientY;
+
+                    // Dot follows instantly
+                    cursorDot.style.left = `${posX}px`;
+                    cursorDot.style.top = `${posY}px`;
+
+                    // Outline follows with delay (using simple animation here for smoothness)
+                    cursorOutline.animate({
+                        left: `${posX}px`,
+                        top: `${posY}px`
+                    }, { duration: 500, fill: "forwards" });
+                };
+
+                const handleMouseDown = () => document.body.classList.add('clicking');
+                const handleMouseUp = () => document.body.classList.remove('clicking');
+
+                // Hover effect for clickable elements
+                const handleMouseOver = (e) => {
+                    if (e.target.matches('button, a, .retro-card, .cursor-pointer')) {
+                        document.body.classList.add('hovering');
+                    }
+                };
+                const handleMouseOut = (e) => {
+                    if (e.target.matches('button, a, .retro-card, .cursor-pointer')) {
+                        document.body.classList.remove('hovering');
+                    }
+                };
+
+                const createRipple = (e) => {
+                    const ripple = document.createElement('div');
+                    ripple.classList.add('click-ripple');
+                    const size = 100; 
+                    ripple.style.width = size + 'px';
+                    ripple.style.height = size + 'px';
+                    ripple.style.left = (e.clientX - size / 2) + 'px';
+                    ripple.style.top = (e.clientY - size / 2) + 'px';
+                    document.body.appendChild(ripple);
+                    setTimeout(() => ripple.remove(), 600);
+                };
+
+                window.addEventListener('mousemove', moveCursor);
+                window.addEventListener('mousedown', handleMouseDown);
+                window.addEventListener('mouseup', handleMouseUp);
+                window.addEventListener('mouseover', handleMouseOver); // Event delegation for hover
+                window.addEventListener('mouseout', handleMouseOut);
+                window.addEventListener('click', createRipple);
+
+                return () => {
+                    window.removeEventListener('mousemove', moveCursor);
+                    window.removeEventListener('mousedown', handleMouseDown);
+                    window.removeEventListener('mouseup', handleMouseUp);
+                    window.removeEventListener('mouseover', handleMouseOver);
+                    window.removeEventListener('mouseout', handleMouseOut);
+                    window.removeEventListener('click', createRipple);
+                };
+            }, []);
+        };
+
+        // --- Sound Helper (Web Audio API) ---
+        const playSound = (type) => {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContext) return;
+            
+            const ctx = new AudioContext();
+            const osc = ctx.createOscillator();
+            const gainNode = ctx.createGain();
+            
+            osc.connect(gainNode);
+            gainNode.connect(ctx.destination);
+            
+            const now = ctx.currentTime;
+
+            if (type === 'correct') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(880, now);
+                osc.frequency.exponentialRampToValueAtTime(1760, now + 0.1);
+                gainNode.gain.setValueAtTime(0.1, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                osc.start(now);
+                osc.stop(now + 0.1);
+            } else if (type === 'wrong') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.linearRampToValueAtTime(100, now + 0.3);
+                gainNode.gain.setValueAtTime(0.2, now);
+                gainNode.gain.linearRampToValueAtTime(0.01, now + 0.3);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            } else if (type === 'flip') {
+                const bufferSize = ctx.sampleRate * 0.1; 
+                const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = Math.random() * 2 - 1;
+                }
+                const noise = ctx.createBufferSource();
+                noise.buffer = buffer;
+                const filter = ctx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.value = 1000;
+                noise.connect(filter);
+                filter.connect(gainNode);
+                gainNode.gain.setValueAtTime(0.1, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                noise.start(now);
+            } else if (type === 'step') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(600, now);
+                osc.frequency.exponentialRampToValueAtTime(300, now + 0.05);
+                gainNode.gain.setValueAtTime(0.05, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+                osc.start(now);
+                osc.stop(now + 0.05);
+            } else if (type === 'win') {
+                const frequencies = [523.25, 659.25, 783.99, 1046.50]; 
+                frequencies.forEach((freq, i) => {
+                    const noteOsc = ctx.createOscillator();
+                    const noteGain = ctx.createGain();
+                    noteOsc.connect(noteGain);
+                    noteGain.connect(ctx.destination);
+                    noteOsc.type = 'square';
+                    noteOsc.frequency.value = freq;
+                    const startTime = now + i * 0.1;
+                    noteGain.gain.setValueAtTime(0.1, startTime);
+                    noteGain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.3);
+                    noteOsc.start(startTime);
+                    noteOsc.stop(startTime + 0.3);
+                });
+            }
+        };
+
+        // --- Components ---
+
+        // 1. Navigation
+        const Navbar = ({ activeTab, setActiveTab }) => {
+            const tabs = [
+                { id: 'intro', label: '導覽大廳', icon: Book },
+                { id: 'units', label: '電腦餐廳', icon: Coffee },
+                { id: 'flow', label: '出餐流程', icon: ArrowRight },
+                { id: 'cards', label: '學習卡', icon: Brain },
+                { id: 'game', label: '大廚挑戰', icon: Star },
+            ];
+
+            return (
+                React.createElement("nav", { className: "bg-white border-b-4 border-[#2c3e50] sticky top-0 z-50 px-4 py-3 shadow-lg" },
+                    React.createElement("div", { className: "max-w-6xl mx-auto flex flex-wrap justify-center gap-2 sm:gap-4" },
+                        tabs.map((tab) => (
+                            React.createElement("button", {
+                                key: tab.id,
+                                onClick: () => setActiveTab(tab.id),
+                                className: `
+                                    flex items-center gap-2 px-4 py-2 font-bold text-sm sm:text-base rounded-lg transition-all
+                                    ${activeTab === tab.id 
+                                        ? 'bg-[#d35400] text-white shadow-[4px_4px_0px_#2c3e50] translate-y-[-2px]' 
+                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border-2 border-transparent hover:border-gray-300'}
+                                `
+                            },
+                                React.createElement(tab.icon, { size: 20 }),
+                                React.createElement("span", null, tab.label)
+                            )
+                        ))
+                    )
+                )
+            );
+        };
+
+        // 2. Intro Section
+        const IntroSection = ({ setTab }) => {
+            const [selectedType, setSelectedType] = useState(null);
+
+            const platformTypes = [
+                { 
+                    id: 'computer',
+                    title: '電腦系統平臺', 
+                    icon: Monitor,
+                    bg: 'bg-blue-100',
+                    category: '傳統系統平臺',
+                    categoryColor: 'bg-orange-400',
+                    desc: '傳統的桌上型或筆記型電腦。',
+                    details: '這是我們最熟悉的電腦形式。特色是擁有完整的五大單元架構，運算能力強，適合執行複雜的軟體，如修圖、寫程式、做報告。',
+                    example: '實例：桌上型電腦 (Desktop)、筆記型電腦 (Laptop)'
+                },
+                { 
+                    id: 'portable',
+                    title: '可攜式系統平臺', 
+                    icon: Smartphone,
+                    bg: 'bg-purple-100',
+                    category: '新興系統平臺',
+                    categoryColor: 'bg-purple-400',
+                    desc: '小型、便於攜帶或穿戴的智慧裝置。',
+                    details: '隨著科技進步，將電腦微型化。強調輕便與移動性，通常使用電池供電，系統經過簡化以省電。',
+                    example: '實例：智慧型手機 (Smartphone)、平板電腦、智慧手錶 (Smart Watch)'
+                },
+                { 
+                    id: 'embedded',
+                    title: '嵌入式系統平臺', 
+                    icon: Cpu, 
+                    bg: 'bg-green-100',
+                    category: '新興系統平臺',
+                    categoryColor: 'bg-purple-400',
+                    desc: '內建於設備中，執行特定功能的控制晶片。',
+                    details: '通常外觀看不出是電腦，但內部有微處理器。專注於執行單一或特定的自動化功能，強調穩定性與自動化。',
+                    example: '實例：智慧冷氣(自動調溫)、洗衣機、紅綠燈控制系統、汽車電腦'
+                },
+                { 
+                    id: 'cloud',
+                    title: '雲端系統平臺', 
+                    icon: Cloud,
+                    bg: 'bg-sky-100',
+                    category: '新興系統平臺',
+                    categoryColor: 'bg-purple-400',
+                    desc: '透過網路使用遠端伺服器的運算服務。',
+                    details: '運算不在本地端進行，而是由遠端強大的伺服器處理。支援多人同時連線、協作與大量資料儲存。',
+                    example: '實例：Google 文件 (多人編輯)、iCloud、線上遊戲伺服器'
+                },
+            ];
+
+            return (
+                React.createElement("div", { className: "max-w-5xl mx-auto p-6 space-y-10 animate-pop-in pb-20" },
+                    // Header
+                    React.createElement("div", { className: "text-center space-y-4 py-6" },
+                        React.createElement("h1", { 
+                            className: "text-4xl md:text-6xl font-black text-[#2c3e50] tracking-tight",
+                            style: { textShadow: '4px 4px 0px #f39c12' }
+                        }, "🍄 系統平臺大冒險"),
+                        React.createElement("p", { className: "text-xl text-gray-700 font-bold" },
+                            "歡迎來到「電腦餐廳」！輕鬆搞懂電腦的五大核心單元"
+                        )
+                    ),
+
+                    // Definition Section
+                    React.createElement("div", { className: "retro-card p-8 rounded-none bg-white" },
+                        React.createElement("div", { className: "flex items-center gap-3 mb-6 border-b-4 border-gray-200 pb-4" },
+                            React.createElement(LayoutGrid, { size: 32, className: "text-[#d35400]" }),
+                            React.createElement("h2", { className: "text-2xl md:text-3xl font-black text-[#2c3e50]" }, "什麼是系統平臺？")
+                        ),
+                        React.createElement("div", { className: "space-y-6" },
+                            React.createElement("p", { className: "text-lg font-medium leading-relaxed" },
+                                React.createElement("span", { className: "bg-[#f39c12] text-white px-2 py-1 rounded mr-2" }, "定義"),
+                                "又稱為運算平臺 (Computing Platform)。就是利用電腦的運算能力，提供各項服務的環境。"
+                            ),
+                            React.createElement("div", { className: "bg-gray-50 border-4 border-gray-200 p-6" },
+                                React.createElement("h3", { className: "font-bold text-lg mb-4 flex items-center gap-2" },
+                                    "以「傳統電腦系統平臺」為例，它由三要素組成："
+                                ),
+                                React.createElement("ul", { className: "grid md:grid-cols-3 gap-4" },
+                                    [
+                                        { title: '硬體', icon: '🖥️', desc: '實體設備', sub: '主機、螢幕' },
+                                        { title: '作業系統', icon: '⚙️', desc: '管理員', sub: 'Windows, iOS' },
+                                        { title: '應用軟體', icon: '📱', desc: '工具', sub: 'Word, Line' }
+                                    ].map((item, idx) => (
+                                        React.createElement("li", { key: idx, className: "bg-white p-4 border-2 border-gray-800 text-center shadow-[4px_4px_0px_#ccc]" },
+                                            React.createElement("div", { className: "text-3xl mb-2" }, item.icon),
+                                            React.createElement("h4", { className: "font-black text-xl" }, item.title),
+                                            React.createElement("p", { className: "text-sm text-gray-600 mt-1 font-bold" }, item.desc),
+                                            React.createElement("p", { className: "text-xs text-gray-400 mt-1" }, item.sub)
+                                        )
+                                    ))
+                                )
+                            )
+                        )
+                    ),
+
+                    // Types Section
+                    React.createElement("div", { className: "space-y-6" },
+                        React.createElement("div", { className: "flex items-center gap-3" },
+                            React.createElement(Brain, { className: "text-[#27ae60]", size: 32 }),
+                            React.createElement("h3", { className: "text-2xl font-black text-[#2c3e50]" }, "常見的系統平臺類型"),
+                            React.createElement("span", { className: "hidden sm:block text-sm bg-[#2c3e50] text-white px-2 py-1 rounded" }, "點擊卡片看詳情")
+                        ),
+                        
+                        React.createElement("div", { className: "grid md:grid-cols-2 gap-4" },
+                            platformTypes.map((type) => (
+                                React.createElement("div", { 
+                                    key: type.id, 
+                                    onClick: () => setSelectedType(type),
+                                    className: `cursor-pointer p-5 border-4 border-[#2c3e50] shadow-[4px_4px_0px_#2c3e50] hover:translate-y-[-4px] hover:shadow-[8px_8px_0px_#2c3e50] transition-all flex items-start gap-4 bg-white relative overflow-hidden retro-card`
+                                },
+                                    // Category Label
+                                    React.createElement("div", { className: `absolute top-0 right-0 ${type.categoryColor} text-white text-xs font-bold px-3 py-1 rounded-bl-lg z-10` },
+                                        type.category
+                                    ),
+                                    React.createElement("div", { className: `p-3 rounded-lg border-2 border-[#2c3e50] ${type.bg}` },
+                                        React.createElement(type.icon, { size: 28, className: "text-[#2c3e50]" })
+                                    ),
+                                    React.createElement("div", null,
+                                        React.createElement("h4", { className: "font-black text-xl text-[#2c3e50]" }, type.title),
+                                        React.createElement("p", { className: "text-gray-600 font-bold text-sm mt-1" }, type.desc)
+                                    )
+                                )
+                            ))
+                        ),
+
+                        // Detail Popup
+                        selectedType && (
+                            React.createElement("div", { className: "mt-6 bg-[#2c3e50] p-1 rounded-lg shadow-2xl animate-pop-in" },
+                                React.createElement("div", { className: "bg-white border-4 border-[#f39c12] p-6" },
+                                    React.createElement("div", { className: "flex justify-between items-start mb-4 border-b-4 border-gray-100 pb-2" },
+                                        React.createElement("div", { className: "flex flex-col gap-1" },
+                                            React.createElement("span", { className: `text-xs font-bold text-white px-2 py-0.5 rounded w-fit ${selectedType.categoryColor}` }, selectedType.category),
+                                            React.createElement("h4", { className: "text-2xl font-black text-[#d35400] flex items-center gap-2" },
+                                                React.createElement(selectedType.icon), selectedType.title
+                                            )
+                                        ),
+                                        React.createElement("button", { onClick: () => setSelectedType(null), className: "text-gray-400 hover:text-red-500" }, 
+                                            React.createElement(XCircle, { size: 32 })
+                                        )
+                                    ),
+                                    React.createElement("div", { className: "space-y-4" },
+                                        React.createElement("p", { className: "text-lg font-bold text-gray-700" }, selectedType.details),
+                                        React.createElement("div", { className: "bg-[#f4f1ea] p-4 border-l-8 border-[#27ae60]" },
+                                            React.createElement("p", { className: "text-[#2c3e50] font-bold" }, selectedType.example)
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    ),
+
+                    // CTA
+                    React.createElement("div", { className: "mt-12 bg-[#2c3e50] p-8 text-center border-4 border-[#d35400] shadow-[8px_8px_0px_#d35400]" },
+                        React.createElement("h3", { className: "text-2xl font-bold mb-4 text-white" }, "準備好進入電腦餐廳了嗎？"),
+                        React.createElement("button", {
+                            onClick: () => setTab('units'),
+                            className: "retro-btn bg-[#27ae60] text-white px-8 py-3 text-xl rounded hover:bg-[#2ecc71] flex items-center gap-2 mx-auto"
+                        },
+                            "開始探索", React.createElement(ArrowRight, { size: 24 })
+                        )
+                    )
+                )
+            );
+        };
+
+        // 3. Units Section
+        const UnitsSection = () => {
+            const [selectedUnit, setSelectedUnit] = useState(null);
+
+            const units = [
+                {
+                    id: 'input',
+                    name: '輸入單元',
+                    role: '外場服務生 (點餐)',
+                    icon: Keyboard,
+                    bg: 'bg-[#f1c40f]',
+                    desc: '負責將外界的資訊（如文字、聲音、影像）輸入到電腦系統中。',
+                    metaphor: '就像服務生將顧客的點餐單（資料）交給廚房。',
+                    examples: '鍵盤、滑鼠、麥克風、網路攝影機',
+                    pos: 'md:col-span-1 md:row-span-2'
+                },
+                {
+                    id: 'cpu',
+                    name: '中央處理器 (CPU)',
+                    role: '廚房大廚團隊',
+                    icon: Cpu,
+                    bg: 'bg-[#e74c3c] text-white',
+                    desc: '電腦的大腦，負責指揮、協調各單元運作以及執行運算。包含「控制單元」與「算術邏輯單元」。',
+                    metaphor: '行政主廚（控制）指揮全場，副主廚（算術）負責切菜烹飪。',
+                    examples: 'Intel Core, AMD Ryzen, Apple M系列',
+                    pos: 'md:col-span-2 md:row-span-1'
+                },
+                {
+                    id: 'memory',
+                    name: '記憶單元 (Memory)',
+                    role: '廚房儲藏區',
+                    icon: HardDrive,
+                    bg: 'bg-[#3498db] text-white',
+                    desc: '負責儲存程式指令與資料的地方。依速度與用途分為不同層級。',
+                    metaphor: '包含砧板（暫存器）、調味架（快取）、冰箱（RAM）與地下倉庫（硬碟）。',
+                    examples: 'RAM (記憶體), SSD (硬碟), 隨身碟',
+                    pos: 'md:col-span-2 md:row-span-1'
+                },
+                {
+                    id: 'output',
+                    name: '輸出單元',
+                    role: '外場服務生 (上菜)',
+                    icon: Monitor,
+                    bg: 'bg-[#2ecc71]',
+                    desc: '將電腦處理後的結果，轉換成人類能理解的形式（畫面、聲音、文件）。',
+                    metaphor: '服務生將做好的餐點（運算結果）端上桌給客人。',
+                    examples: '螢幕、印表機、喇叭、投影機',
+                    pos: 'md:col-span-1 md:row-span-2'
+                }
+            ];
+
+            return (
+                React.createElement("div", { className: "max-w-6xl mx-auto p-4 animate-pop-in pb-20" },
+                    React.createElement("div", { className: "mb-8 text-center" },
+                        React.createElement("h2", { className: "text-3xl font-black text-[#2c3e50] mb-2" }, "電腦硬體五大單元"),
+                        React.createElement("p", { className: "text-lg font-bold text-[#7f8c8d]" }, "點擊方塊查看「餐廳譬喻」")
+                    ),
+
+                    // 修正1: 確保 Grid Layout 高度一致，輸入與輸出高度相同
+                    React.createElement("div", { className: "grid grid-cols-1 md:grid-cols-4 gap-4 md:auto-rows-fr" },
+                        // Left Column: Input (Full height)
+                        React.createElement("div", { 
+                            onClick: () => setSelectedUnit(units[0]),
+                            className: `md:col-span-1 md:row-span-2 retro-card relative p-6 cursor-pointer flex flex-col justify-center items-center text-center group ${units[0].bg} h-full min-h-[300px] md:min-h-[500px]`
+                        },
+                            React.createElement("div", { className: "absolute top-2 right-2 bg-black/20 rounded p-1" }, React.createElement(ArrowRight, { size: 16, className: "text-white" })),
+                            React.createElement(units[0].icon, { size: 64, className: "mb-4 drop-shadow-md" }),
+                            React.createElement("h3", { className: "text-2xl font-black mb-2" }, units[0].name),
+                            React.createElement("div", { className: "bg-black/20 px-3 py-1 rounded font-bold text-sm" }, units[0].role)
+                        ),
+
+                        // Middle Column: CPU & Memory
+                        React.createElement("div", { className: "md:col-span-2 md:row-span-2 flex flex-col gap-4 h-full" },
+                            // CPU
+                            React.createElement("div", { 
+                                onClick: () => setSelectedUnit(units[1]),
+                                className: `flex-1 retro-card relative p-6 cursor-pointer flex flex-col justify-center items-center text-center group ${units[1].bg}`
+                            },
+                                React.createElement("div", { className: "absolute top-2 right-2 bg-black/20 rounded p-1" }, React.createElement(ArrowRight, { size: 16, className: "text-white" })),
+                                React.createElement(units[1].icon, { size: 64, className: "mb-4 drop-shadow-md" }),
+                                React.createElement("h3", { className: "text-2xl font-black mb-2" }, units[1].name),
+                                React.createElement("div", { className: "bg-black/20 px-3 py-1 rounded font-bold text-sm" }, units[1].role),
+                                React.createElement("div", { className: "flex gap-2 mt-4" },
+                                    React.createElement("span", { className: "bg-white text-red-500 px-2 py-1 rounded border-2 border-black font-bold text-xs" }, "控制單元"),
+                                    React.createElement("span", { className: "bg-white text-red-500 px-2 py-1 rounded border-2 border-black font-bold text-xs" }, "算術邏輯單元")
+                                )
+                            ),
+                            // Memory
+                            React.createElement("div", { 
+                                onClick: () => setSelectedUnit(units[2]),
+                                className: `flex-1 retro-card relative p-6 cursor-pointer flex flex-col justify-center items-center text-center group ${units[2].bg}`
+                            },
+                                React.createElement("div", { className: "absolute top-2 right-2 bg-black/20 rounded p-1" }, React.createElement(ArrowRight, { size: 16, className: "text-white" })),
+                                React.createElement(units[2].icon, { size: 64, className: "mb-4 drop-shadow-md" }),
+                                React.createElement("h3", { className: "text-2xl font-black mb-2" }, units[2].name),
+                                React.createElement("div", { className: "bg-black/20 px-3 py-1 rounded font-bold text-sm" }, units[2].role)
+                            )
+                        ),
+
+                        // Right Column: Output (Full height)
+                        React.createElement("div", { 
+                            onClick: () => setSelectedUnit(units[3]),
+                            className: `md:col-span-1 md:row-span-2 retro-card relative p-6 cursor-pointer flex flex-col justify-center items-center text-center group ${units[3].bg} h-full min-h-[300px] md:min-h-[500px]`
+                        },
+                            React.createElement("div", { className: "absolute top-2 right-2 bg-black/20 rounded p-1" }, React.createElement(ArrowRight, { size: 16, className: "text-white" })),
+                            React.createElement(units[3].icon, { size: 64, className: "mb-4 drop-shadow-md" }),
+                            React.createElement("h3", { className: "text-2xl font-black mb-2" }, units[3].name),
+                            React.createElement("div", { className: "bg-black/20 px-3 py-1 rounded font-bold text-sm" }, units[3].role)
+                        )
+                    ),
+
+                    // Detail Modal
+                    selectedUnit && (
+                        React.createElement("div", { className: "fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm", onClick: () => setSelectedUnit(null) },
+                            React.createElement("div", { 
+                                className: "bg-white border-4 border-[#2c3e50] shadow-[10px_10px_0px_#fff] max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-pop-in relative",
+                                onClick: (e) => e.stopPropagation()
+                            },
+                                React.createElement("button", { 
+                                    onClick: () => setSelectedUnit(null), 
+                                    className: "absolute top-4 right-4 text-gray-400 hover:text-red-500 z-10 bg-white rounded-full p-1" 
+                                }, React.createElement(XCircle, { size: 32 })),
+                                
+                                React.createElement("div", { className: "p-8" },
+                                    React.createElement("div", { className: "flex items-center gap-4 mb-6" },
+                                        React.createElement("div", { className: `p-3 border-2 border-black ${selectedUnit.bg} rounded` },
+                                            React.createElement(selectedUnit.icon, { size: 32 })
+                                        ),
+                                        React.createElement("h3", { className: "text-3xl font-black text-[#2c3e50]" }, selectedUnit.name)
+                                    ),
+                                    
+                                    React.createElement("div", { className: "space-y-6" },
+                                        React.createElement("div", null,
+                                            React.createElement("h4", { className: "text-sm font-black text-gray-400 uppercase mb-1" }, "功能"),
+                                            React.createElement("p", { className: "text-xl font-bold text-[#2c3e50]" }, selectedUnit.desc)
+                                        ),
+                                        
+                                        React.createElement("div", { className: "bg-[#f4f1ea] border-2 border-[#d35400] p-4" },
+                                            React.createElement("h4", { className: "font-black text-[#d35400] mb-2 flex items-center gap-2" },
+                                                React.createElement(Coffee), " 電腦餐廳譬喻"
+                                            ),
+                                            React.createElement("p", { className: "text-lg font-bold text-[#2c3e50]" }, selectedUnit.metaphor)
+                                        ),
+
+                                        // Memory Hierarchy
+                                        selectedUnit.id === 'memory' && (
+                                            React.createElement("div", { className: "mt-4 p-4 bg-gray-100 border-2 border-gray-300" },
+                                                React.createElement("div", { className: "grid grid-cols-4 gap-2 text-center text-xs font-bold mb-2 text-gray-600" },
+                                                    React.createElement("div", null, "單位價格"),
+                                                    React.createElement("div", null, "存取速度"),
+                                                    React.createElement("div", null, "容量大小"),
+                                                    React.createElement("div", null, "層級")
+                                                ),
+                                                
+                                                // Pyramid Visual
+                                                React.createElement("div", { className: "flex flex-col items-center gap-1 w-full relative" },
+                                                    // Arrows on the left
+                                                    React.createElement("div", { className: "absolute left-2 top-0 h-full flex flex-col justify-between text-xs font-bold text-purple-700" },
+                                                        React.createElement("span", null, "高/快/小 ⬆"),
+                                                        React.createElement("span", null, "低/慢/大 ⬇")
+                                                    ),
+
+                                                    // Register
+                                                    React.createElement("div", { className: "w-1/4 bg-[#a3e635] text-black text-center py-1 border-2 border-black clip-triangle" }, 
+                                                        React.createElement("div", { className: "font-bold" }, "暫存器"),
+                                                        React.createElement("div", { className: "text-[10px]" }, "Register")
+                                                    ),
+                                                    
+                                                    // Cache
+                                                    React.createElement("div", { className: "w-2/4 bg-[#f472b6] text-white text-center py-2 border-2 border-black" }, 
+                                                        React.createElement("div", { className: "font-bold" }, "快取記憶體"),
+                                                        React.createElement("div", { className: "text-[10px]" }, "Cache")
+                                                    ),
+                                                    
+                                                    // RAM
+                                                    React.createElement("div", { className: "w-3/4 bg-[#fbbf24] text-black text-center py-2 border-2 border-black" }, 
+                                                        React.createElement("div", { className: "font-bold" }, "隨機存取記憶體"),
+                                                        React.createElement("div", { className: "text-[10px]" }, "RAM (主記憶體)")
+                                                    ),
+                                                    
+                                                    // HDD/SSD
+                                                    React.createElement("div", { className: "w-full bg-[#38bdf8] text-black text-center py-3 border-2 border-black" }, 
+                                                        React.createElement("div", { className: "font-bold" }, "輔助記憶體"),
+                                                        React.createElement("div", { className: "text-[10px]" }, "硬碟 / SSD")
+                                                    ),
+
+                                                    // Side note
+                                                    React.createElement("div", { className: "absolute right-0 top-1/2 -translate-y-1/2 text-xs text-gray-500 bg-white p-1 border border-gray-300 rotate-90 origin-right" }, 
+                                                        "關機後資料消失 (除了最下層)"
+                                                    )
+                                                ),
+                                                
+                                                React.createElement("div", { className: "mt-4 text-sm text-gray-700 bg-white p-2 border border-gray-300" },
+                                                    React.createElement("p", null, "CPU 運算時會先找「暫存器」，找不到再找「快取」，再沒有才找「RAM」。")
+                                                )
+                                            )
+                                        ),
+                                        
+                                        React.createElement("div", null,
+                                            React.createElement("h4", { className: "text-sm font-black text-gray-400 uppercase mb-1" }, "常見設備"),
+                                            React.createElement("p", { className: "text-gray-600 font-bold" }, selectedUnit.examples)
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            );
+        };
+
+        // 4. Flow Section
+        const FLOW_STEPS = [
+            { title: '顧客點餐', desc: '輸入單元：接收你輸入的 "1 + 2"。', icon: Keyboard, unit: 'Input' },
+            { title: '送入廚房', desc: '記憶單元：將 "1, 2, +" 暫時存入 RAM。', icon: HardDrive, unit: 'Memory' },
+            { title: '大廚指揮', desc: '控制單元 (CU)：讀取指令，分析要做加法。', icon: Brain, unit: 'CU' },
+            { title: '二廚料理', desc: '算術邏輯單元 (ALU)：執行 1+2 算出 "3"。', icon: Zap, unit: 'ALU' },
+            { title: '暫存結果', desc: '記憶單元：將 "3" 放回 RAM 準備出餐。', icon: HardDrive, unit: 'Memory' },
+            { title: '美味上桌', desc: '輸出單元：將 "3" 顯示在螢幕上。', icon: Monitor, unit: 'Output' }
+        ];
+
+        const FlowSection = () => {
+            const [step, setStep] = useState(0);
+            const [isPlaying, setIsPlaying] = useState(true);
+
+            useEffect(() => {
+                let timer;
+                if (isPlaying) {
+                    timer = setInterval(() => {
+                        setStep((prev) => {
+                            const next = (prev + 1) % FLOW_STEPS.length;
+                            playSound('step'); 
+                            return next;
+                        });
+                    }, 2500);
+                }
+                return () => clearInterval(timer);
+            }, [isPlaying]);
+
+            return (
+                React.createElement("div", { className: "max-w-4xl mx-auto p-6 animate-pop-in pb-20" },
+                    React.createElement("div", { className: "bg-white border-4 border-[#2c3e50] shadow-[8px_8px_0px_#2c3e50] p-8" },
+                        React.createElement("h2", { className: "text-3xl font-black text-center mb-8 text-[#2c3e50]" }, "⚡ 運作流程模擬：1+2=?"),
+                        
+                        React.createElement("div", { className: "flex flex-col items-center justify-center min-h-[300px]" },
+                            React.createElement("div", { key: step, className: "animate-pop-in flex flex-col items-center text-center" },
+                                React.createElement("div", { className: "w-32 h-32 bg-[#f4f1ea] border-4 border-[#2c3e50] rounded-full flex items-center justify-center mb-6 shadow-[4px_4px_0px_#d35400]" },
+                                    React.createElement(FLOW_STEPS[step].icon, { size: 48, className: "text-[#2c3e50]" })
+                                ),
+                                React.createElement("h3", { className: "text-3xl font-black text-[#d35400] mb-2" }, FLOW_STEPS[step].title),
+                                React.createElement("span", { className: "inline-block px-3 py-1 bg-[#2c3e50] text-white rounded font-bold text-sm mb-4" }, 
+                                    FLOW_STEPS[step].unit
+                                ),
+                                React.createElement("p", { className: "text-xl font-bold text-[#2c3e50] max-w-md" }, FLOW_STEPS[step].desc)
+                            )
+                        ),
+                        
+                        // Progress Bar
+                        React.createElement("div", { className: "mt-8 px-4" },
+                            React.createElement("div", { className: "flex justify-between mb-2 gap-1" },
+                                FLOW_STEPS.map((_, idx) => (
+                                    React.createElement("div", { 
+                                        key: idx,
+                                        className: `h-4 flex-1 border-2 border-[#2c3e50] transition-all ${idx <= step ? 'bg-[#27ae60]' : 'bg-gray-200'}`
+                                    })
+                                ))
+                            ),
+                            React.createElement("div", { className: "flex justify-center gap-4 mt-6" },
+                                React.createElement("button", {
+                                    onClick: () => setIsPlaying(!isPlaying),
+                                    className: "retro-btn bg-white text-[#2c3e50] px-6 py-2 rounded"
+                                },
+                                    isPlaying ? '⏸ 暫停' : '▶️ 播放'
+                                )
+                            )
+                        )
+                    )
+                )
+            );
+        };
+
+        // 5. Flashcards
+        const FlashcardsSection = () => {
+            const cards = [
+                { q: '誰是電腦的大腦？', a: '中央處理器 (CPU)' },
+                { q: '負責協調工作的「行政主廚」？', a: '控制單元 (CU)' },
+                { q: '負責加減乘除的「副主廚」？', a: '算術邏輯單元 (ALU)' },
+                { q: '速度最快、容量最小的記憶體？', a: '暫存器 (Register)' },
+                { q: '關機後資料會消失的記憶體？', a: 'RAM (隨機存取記憶體)' },
+                { q: '滑鼠、鍵盤屬於？', a: '輸入單元' },
+                { q: '螢幕、喇叭屬於？', a: '輸出單元' },
+                { q: 'Google 文件多人編輯應用了？', a: '雲端系統平臺' },
+                { q: '冷氣機的控溫晶片是？', a: '嵌入式系統平臺' },
+            ];
+
+            const [flipped, setFlipped] = useState(Array(cards.length).fill(false));
+
+            return (
+                React.createElement("div", { className: "max-w-6xl mx-auto p-6 pb-20" },
+                    React.createElement("h2", { className: "text-3xl font-black text-center mb-8 text-[#2c3e50]" }, "🧠 腦力激盪學習卡"),
+                    
+                    React.createElement("div", { className: "grid sm:grid-cols-2 lg:grid-cols-3 gap-6" },
+                        cards.map((card, idx) => (
+                            React.createElement("div", {
+                                key: idx,
+                                onClick: () => {
+                                    const newFlipped = [...flipped];
+                                    newFlipped[idx] = !newFlipped[idx];
+                                    setFlipped(newFlipped);
+                                    playSound('flip'); // Sound Effect
+                                },
+                                className: "h-48 perspective-1000 cursor-pointer"
+                            },
+                                React.createElement("div", { className: `relative w-full h-full transition-transform duration-500 transform-style-3d ${flipped[idx] ? 'rotate-y-180' : ''}` },
+                                    // Front
+                                    React.createElement("div", { className: "absolute w-full h-full bg-white border-4 border-[#2c3e50] shadow-[4px_4px_0px_#9b59b6] p-6 flex flex-col items-center justify-center text-center backface-hidden retro-card" },
+                                        React.createElement(Brain, { size: 32, className: "text-[#9b59b6] mb-2" }),
+                                        React.createElement("h3", { className: "text-xl font-black text-[#2c3e50]" }, card.q),
+                                        React.createElement("span", { className: "absolute bottom-2 text-xs font-bold text-gray-400" }, "點擊翻面")
+                                    ),
+                                    // Back
+                                    React.createElement("div", { className: "absolute w-full h-full bg-[#f39c12] border-4 border-[#2c3e50] shadow-[4px_4px_0px_#2c3e50] p-6 flex flex-col items-center justify-center text-center rotate-y-180 backface-hidden retro-card" },
+                                        React.createElement(CheckCircle, { size: 32, className: "text-white mb-2" }),
+                                        React.createElement("h3", { className: "text-2xl font-black text-white" }, card.a)
+                                    )
+                                )
+                            )
+                        ))
+                    )
+                )
+            );
+        };
+
+        // 6. Game Section
+        const GameSection = () => {
+            // Initial Question Bank
+            const initialQuestions = [
+                { q: "我是餐廳的「行政主廚」，負責指揮交通，我是誰？", options: ["ALU", "控制單元", "RAM", "硬碟"], correct: 1 },
+                { q: "我是放在「爐邊的調味架」，速度比RAM快，我是？", options: ["暫存器", "輔助記憶體", "快取記憶體", "光碟"], correct: 2 },
+                { q: "麥克風是用來把聲音傳進電腦的，它屬於？", options: ["輸入單元", "輸出單元", "控制單元", "運算單元"], correct: 0 },
+                { q: "電腦關機後，哪裡的資料會全部消失？", options: ["硬碟", "SSD", "隨身碟", "RAM"], correct: 3 },
+                { q: "負責把運算結果顯示出來給使用者看的是？", options: ["輸入單元", "CPU", "輸出單元", "電源"], correct: 2 },
+                { q: "CPU 是哪兩個單元的合稱？", options: ["輸入+輸出", "控制+算術邏輯", "記憶+控制", "RAM+ROM"], correct: 1 },
+                { q: "下列哪一個記憶體的速度「最快」？", options: ["硬碟", "RAM", "快取", "暫存器"], correct: 3 },
+                { q: "智慧型手錶屬於哪一種系統平臺？", options: ["傳統電腦", "可攜式", "嵌入式", "雲端"], correct: 1 },
+                { q: "可以多人同時線上編輯 Google 文件，是應用了？", options: ["嵌入式系統", "雲端系統", "單機遊戲", "離線功能"], correct: 1 },
+                { q: "冷氣機裡面的自動控溫晶片，屬於？", options: ["嵌入式系統", "桌上型電腦", "超級電腦", "雲端伺服器"], correct: 0 },
+                { q: "ALU (算術邏輯單元) 的主要工作是？", options: ["儲存資料", "指揮交通", "顯示畫面", "計算與邏輯判斷"], correct: 3 },
+                { q: "一般來說，容量最大、價格最便宜的記憶體是？", options: ["暫存器", "快取", "RAM", "輔助記憶體(硬碟)"], correct: 3 },
+                { q: "3D 印表機屬於哪一種單元？", options: ["輸入", "輸出", "運算", "記憶"], correct: 1 },
+                { q: "作業系統 (如 Windows) 屬於系統平臺的哪一部分？", options: ["硬體", "軟體", "韌體", "以上皆非"], correct: 1 },
+                { q: "哪一個比喻最適合「RAM」？", options: ["個人的小紙條", "廚房的冰箱", "地下室的大倉庫", "正在切菜的砧板"], correct: 1 }
+            ];
+
+            // Helper to shuffle array
+            const shuffleArray = (array) => {
+                const shuffled = [...array];
+                for (let i = shuffled.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+                }
+                return shuffled;
+            };
+
+            const [gameQuestions, setGameQuestions] = useState([]);
+            const [gameState, setGameState] = useState('name'); // name -> start -> playing -> end
+            const [playerName, setPlayerName] = useState('');
+            const [currentQ, setCurrentQ] = useState(0);
+            const [score, setScore] = useState(0);
+            const [correctCount, setCorrectCount] = useState(0);
+            const [lives, setLives] = useState(3);
+            const [streak, setStreak] = useState(0);
+            const [feedback, setFeedback] = useState(null);
+            const [showConfetti, setShowConfetti] = useState(false);
+
+            // Initialize shuffled questions on start
+            const startGame = () => {
+                setGameQuestions(shuffleArray(initialQuestions));
+                setGameState('playing');
+            };
+
+            const handleAnswer = (idx) => {
+                const currentQuestion = gameQuestions[currentQ];
+                const isCorrect = idx === currentQuestion.correct;
+                
+                if (isCorrect) {
+                    setScore(prev => prev + 100 + (streak * 10));
+                    setStreak(prev => prev + 1);
+                    setCorrectCount(prev => prev + 1);
+                    setFeedback('correct');
+                    playSound('correct'); // Sound Effect
+                    setShowConfetti(true);
+                } else {
+                    setLives(prev => prev - 1);
+                    setStreak(0);
+                    setFeedback('wrong');
+                    playSound('wrong'); // Sound Effect
+                }
+                
+                setTimeout(() => {
+                    setFeedback(null);
+                    setShowConfetti(false);
+                    
+                    if (!isCorrect && lives <= 1) {
+                        setGameState('end');
+                    } else if (currentQ < gameQuestions.length - 1) {
+                        setCurrentQ(prev => prev + 1);
+                    } else {
+                        playSound('win'); // Win sound
+                        setGameState('end');
+                    }
+                }, 1000);
+            };
+
+            const resetGame = () => {
+                setScore(0);
+                setCorrectCount(0);
+                setCurrentQ(0);
+                setLives(3);
+                setStreak(0);
+                setGameState('name');
+            };
+
+            const getRank = () => {
+                const total = gameQuestions.length || 1;
+                const percentage = correctCount / total;
+                if (percentage >= 0.9) return { title: "🍄 米其林三星主廚", icon: "⭐⭐⭐" };
+                if (percentage >= 0.7) return { title: "👨‍🍳 資深大廚", icon: "⭐⭐" };
+                if (percentage >= 0.4) return { title: "🔪 廚房二廚", icon: "⭐" };
+                return { title: "🥔 廚房學徒", icon: "" };
+            };
+
+            return (
+                React.createElement("div", { className: "max-w-3xl mx-auto p-4 pb-20" },
+                    React.createElement("div", { className: "relative tech-bg border-4 border-[#00aa2f] rounded-lg shadow-[0_0_20px_#00aa2f] min-h-[500px] flex flex-col overflow-hidden scanline" },
+                        
+                        // Confetti (Visual Only)
+                        showConfetti && Array.from({ length: 20 }).map((_, i) => 
+                            React.createElement("div", { 
+                                key: i, 
+                                className: "confetti",
+                                style: { 
+                                    left: `${Math.random() * 100}%`, 
+                                    animationDelay: `${Math.random() * 0.5}s`,
+                                    backgroundColor: ['#f1c40f', '#e74c3c', '#2ecc71', '#3498db'][Math.floor(Math.random() * 4)]
+                                } 
+                            })
+                        ),
+
+                        // Name Input Screen
+                        gameState === 'name' && (
+                            React.createElement("div", { className: "flex-1 flex flex-col items-center justify-center text-center p-8 space-y-6" },
+                                React.createElement("h2", { className: "text-3xl font-black text-[#00ff46] mb-4 font-mono tracking-widest" }, "IDENTIFY YOURSELF"),
+                                React.createElement("input", {
+                                    type: "text",
+                                    placeholder: "輸入大廚姓名",
+                                    value: playerName,
+                                    onChange: (e) => setPlayerName(e.target.value),
+                                    className: "bg-black border-2 border-[#00ff46] text-white text-2xl p-4 text-center focus:outline-none focus:shadow-[0_0_15px_#00ff46] font-mono w-full max-w-xs uppercase cursor-none" // hide cursor on input too if needed
+                                }),
+                                React.createElement("button", {
+                                    onClick: () => { if(playerName.trim()) setGameState('start'); },
+                                    className: `retro-btn bg-[#00ff46] text-black px-8 py-3 rounded text-xl ${!playerName.trim() ? 'opacity-50 cursor-not-allowed' : ''}`
+                                },
+                                    "確認 ENTER"
+                                )
+                            )
+                        ),
+
+                        // Start Screen
+                        gameState === 'start' && (
+                            React.createElement("div", { className: "flex-1 flex flex-col items-center justify-center text-center p-8 space-y-8" },
+                                React.createElement("div", { className: "text-6xl animate-bounce-slow" }, "🏆"),
+                                React.createElement("div", null,
+                                    React.createElement("h2", { className: "text-4xl font-black text-[#f1c40f] mb-4 font-mono" }, `WELCOME, ${playerName}!`),
+                                    React.createElement("p", { className: "text-[#00ff46] text-xl font-mono" }, "SYSTEM READY. START CHALLENGE?")
+                                ),
+                                React.createElement("button", {
+                                    onClick: startGame,
+                                    className: "retro-btn bg-[#e74c3c] text-white px-10 py-4 text-2xl rounded hover:bg-[#c0392b]"
+                                },
+                                    "START GAME"
+                                )
+                            )
+                        ),
+
+                        // Playing
+                        gameState === 'playing' && gameQuestions.length > 0 && (
+                            React.createElement("div", { className: "flex-1 flex flex-col p-6" },
+                                // HUD
+                                React.createElement("div", { className: "flex justify-between items-center mb-8 border-b-2 border-[#00ff46] pb-4" },
+                                    React.createElement("div", { className: "flex gap-6" },
+                                        React.createElement("div", { className: "flex items-center gap-2 text-[#e74c3c]" },
+                                            React.createElement(Heart, { className: "fill-current" }),
+                                            React.createElement("span", { className: "font-black text-xl font-mono" }, lives)
+                                        ),
+                                        React.createElement("div", { className: "flex items-center gap-2 text-[#f1c40f]" },
+                                            React.createElement(Star, { className: "fill-current" }),
+                                            React.createElement("span", { className: "font-black text-xl font-mono" }, score)
+                                        )
+                                    ),
+                                    React.createElement("div", { className: "text-[#00ff46] font-mono text-xl" },
+                                        `Q: ${currentQ + 1}/${gameQuestions.length}`
+                                    )
+                                ),
+
+                                // Question
+                                React.createElement("div", { className: "flex-1 flex flex-col justify-center" },
+                                    React.createElement("h3", { className: "text-2xl md:text-3xl font-black text-white text-center mb-8 leading-relaxed font-mono" },
+                                        gameQuestions[currentQ].q
+                                    ),
+
+                                    React.createElement("div", { className: "grid grid-cols-1 gap-4" },
+                                        gameQuestions[currentQ].options.map((opt, idx) => (
+                                            React.createElement("button", {
+                                                key: idx,
+                                                onClick: () => !feedback && handleAnswer(idx),
+                                                disabled: !!feedback,
+                                                className: `
+                                                    p-4 rounded border-2 text-left font-bold text-lg transition-all font-mono
+                                                    ${feedback === 'correct' && idx === gameQuestions[currentQ].correct 
+                                                        ? 'bg-[#2ecc71] border-[#27ae60] text-black' 
+                                                        : feedback === 'wrong' && idx === gameQuestions[currentQ].correct
+                                                            ? 'bg-[#2ecc71] border-[#27ae60] text-black opacity-50'
+                                                            : ''}
+                                                    ${feedback === 'wrong' && idx !== gameQuestions[currentQ].correct && 'opacity-50'}
+                                                    ${!feedback 
+                                                        ? 'bg-black/50 border-[#00ff46] text-[#00ff46] hover:bg-[#00ff46] hover:text-black' 
+                                                        : ''}
+                                                `
+                                            },
+                                                opt
+                                            )
+                                        ))
+                                    )
+                                ),
+
+                                // Feedback Text
+                                feedback && (
+                                    React.createElement("div", { className: "absolute inset-0 flex items-center justify-center pointer-events-none z-20 bg-black/50" },
+                                        React.createElement("div", { className: `text-7xl font-black font-mono ${feedback === 'correct' ? 'text-[#2ecc71]' : 'text-[#e74c3c]'}` },
+                                            feedback === 'correct' ? (streak > 1 ? `COMBO x${streak}!` : "CORRECT!") : "WRONG!"
+                                        )
+                                    )
+                                )
+                            )
+                        ),
+
+                        // End
+                        gameState === 'end' && (
+                            React.createElement("div", { className: "flex-1 flex flex-col items-center justify-center text-center p-8 space-y-6" },
+                                React.createElement("h2", { className: "text-4xl font-black text-[#00ff46] font-mono" }, "MISSION COMPLETE"),
+                                React.createElement("div", { className: "text-8xl mb-2" }, getRank().icon),
+                                React.createElement("h3", { className: "text-2xl font-bold text-white font-mono" }, `AGENT: ${playerName}`),
+                                React.createElement("h3", { className: "text-3xl font-bold text-[#f1c40f]" }, getRank().title),
+                                
+                                React.createElement("div", { className: "bg-black/80 p-6 rounded border-2 border-[#00ff46] w-full max-w-sm font-mono" },
+                                    React.createElement("div", { className: "flex justify-between mb-2" },
+                                        React.createElement("span", { className: "text-gray-300" }, "SCORE"),
+                                        React.createElement("span", { className: "text-white font-bold" }, score)
+                                    ),
+                                    React.createElement("div", { className: "flex justify-between" },
+                                        React.createElement("span", { className: "text-gray-300" }, "CORRECT"),
+                                        React.createElement("span", { className: "text-[#2ecc71] font-bold" }, `${correctCount} / ${gameQuestions.length}`)
+                                    )
+                                ),
+                                
+                                React.createElement("button", {
+                                    onClick: resetGame,
+                                    className: "retro-btn bg-[#3498db] text-white px-8 py-3 rounded flex items-center gap-2 mt-4"
+                                },
+                                    React.createElement(RefreshCw), "RETRY"
+                                )
+                            )
+                        )
+                    )
+                )
+            );
+        };
+
+        // Main App
+        const App = () => {
+            const [activeTab, setActiveTab] = useState('intro');
+            
+            // Enable custom cursor effect
+            useMouseEffect();
+
+            return (
+                React.createElement("div", { className: "min-h-screen font-sans text-[#2c3e50]" },
+                    React.createElement(Navbar, { activeTab: activeTab, setActiveTab: setActiveTab }),
+
+                    React.createElement("main", { className: "container mx-auto px-2 py-6" },
+                        activeTab === 'intro' && React.createElement(IntroSection, { setTab: setActiveTab }),
+                        activeTab === 'units' && React.createElement(UnitsSection, null),
+                        activeTab === 'flow' && React.createElement(FlowSection, null),
+                        activeTab === 'cards' && React.createElement(FlashcardsSection, null),
+                        activeTab === 'game' && React.createElement(GameSection, null)
+                    ),
+
+                    React.createElement("footer", { className: "mt-auto text-center text-gray-500 text-sm p-8 border-t-4 border-[#ccc]" },
+                        React.createElement("p", null, "© 2025 CYIT Classroom | 國中資訊科技"),
+                        React.createElement("p", { className: "mt-2" }, "Style: Retro Pixel / Content: System Platform"),
+                        // GitHub Link in Footer
+                        React.createElement("a", { 
+                            href: "https://github.com/mushroomonthehill", 
+                            target: "_blank", 
+                            rel: "noopener noreferrer",
+                            className: "inline-flex items-center gap-2 mt-4 text-gray-600 hover:text-[#2c3e50] transition-colors"
+                        },
+                            React.createElement(Github, { size: 20 }),
+                            React.createElement("span", null, "GitHub")
+                        )
+                    )
+                )
+            );
+        };
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(React.createElement(App));
+    </script>
+</body>
+</html>
+
+
+
+

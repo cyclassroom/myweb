@@ -1,0 +1,1453 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>核心代碼：資訊獵手 | Core Code: Info Hunter</title>
+    <link rel="icon" type="image/png" href="img/favicon.png">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Noto+Sans+TC:wght@300;400;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    
+    <!-- Google Apps Script Integration (Replaces Firebase) -->
+    <script>
+        // --- 設定區 ---
+        // 這是你提供的 Google Apps Script 網頁應用程式網址
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbzlRDfHbAjfitGg_GUud_DcfvbcJz_5kyoCDuTdieCJlETz0ttLp-zQTf0HKneiJ37L0g/exec";
+
+        // Mock Data (在無法連線時顯示的假資料)
+        const MOCK_LEADERBOARD = [
+            { name: "Neo", class: "901", seat: "01", score: 5200 },
+            { name: "Trinity", class: "902", seat: "05", score: 4800 },
+            { name: "Morpheus", class: "903", seat: "10", score: 4500 },
+            { name: "Cipher", class: "901", seat: "12", score: 4100 },
+            { name: "Tank", class: "904", seat: "08", score: 3900 }
+        ];
+
+        // 渲染排行榜 (共用函式)
+        window.renderLeaderboard = (data) => {
+            const tbody = document.getElementById('leaderboardBody');
+            if(tbody) {
+                tbody.innerHTML = '';
+                if (!data || data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-gray-500">暫無排名資料...快來搶第一！</td></tr>';
+                } else {
+                    data.forEach((d, i) => {
+                        const tr = document.createElement('tr');
+                        tr.className = "border-b border-gray-800 hover:bg-gray-800/50";
+                        tr.innerHTML = `
+                            <td class="p-2 text-neon-blue font-cyber">#${i+1}</td>
+                            <td class="p-2 text-white font-bold">${d.name}</td>
+                            <td class="p-2 text-gray-400 font-mono text-sm">${d.class}-${d.seat}</td>
+                            <td class="p-2 text-neon-purple font-mono font-bold">${d.score}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+            }
+
+            // Live Leaderboard (In-Game)
+            const liveBody = document.getElementById('liveLeaderboardList');
+            if(liveBody) {
+                liveBody.innerHTML = '';
+                if (!data || data.length === 0) {
+                    liveBody.innerHTML = '<div class="text-center text-gray-500 text-xs">WAITING FOR DATA...</div>';
+                } else {
+                    data.slice(0, 10).forEach((d, i) => {
+                        const div = document.createElement('div');
+                        let rankColor = "text-gray-400";
+                        if(i===0) rankColor = "text-yellow-400";
+                        if(i===1) rankColor = "text-gray-300";
+                        if(i===2) rankColor = "text-orange-400";
+
+                        div.className = "flex justify-between items-center text-sm py-1 border-b border-gray-800/50";
+                        div.innerHTML = `
+                            <div class="flex items-center gap-2">
+                                <span class="font-cyber font-bold w-6 ${rankColor}">#${i+1}</span>
+                                <span class="text-white truncate max-w-[80px]">${d.name}</span>
+                            </div>
+                            <span class="text-neon-blue font-mono">${d.score}</span>
+                        `;
+                        liveBody.appendChild(div);
+                    });
+                }
+            }
+        };
+
+        // 上傳分數 (透過 GAS)
+        window.saveScore = (playerData) => {
+            console.log("上傳分數中...", playerData);
+            
+            // 構建 URL 參數
+            const params = new URLSearchParams({
+                action: 'add',
+                name: playerData.name,
+                class: playerData.class,
+                seat: playerData.seat,
+                score: playerData.score,
+                accuracy: playerData.accuracy,
+                coins: playerData.coins,
+                _t: new Date().getTime() // 加入時間戳記避免快取
+            });
+
+            // 發送請求
+            fetch(GAS_URL + "?" + params.toString(), {
+                method: "GET",
+                mode: "cors", // 明確指定 CORS 模式
+                credentials: "omit", // 重要：對於公開的 GAS 腳本，不傳送憑證以避免 CORS 錯誤
+                redirect: "follow"
+            })
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.json();
+                })
+                .then(data => {
+                    console.log("分數上傳成功，更新排行榜", data);
+                    window.renderLeaderboard(data); 
+                })
+                .catch(error => {
+                    console.warn("上傳失敗 (可能因網路限制，切換顯示 Mock Data):", error);
+                    // 即使上傳失敗，為了不讓使用者覺得壞掉，我們可以假裝更新介面
+                    // 但這裡我們選擇保持原樣或顯示備用數據
+                });
+        };
+
+        // 定期抓取排行榜 (Polling)
+        let pollingInterval;
+
+        function fetchLeaderboard() {
+            // 加入時間戳記 `_t` 避免瀏覽器快取 Redirect 回應導致的 Failed to fetch
+            const cacheBuster = `&_t=${new Date().getTime()}`;
+            
+            fetch(GAS_URL + "?" + paramsString('get') + cacheBuster, {
+                method: "GET",
+                mode: "cors",
+                credentials: "omit",
+                redirect: "follow"
+            })
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.json();
+                })
+                .then(data => {
+                    window.renderLeaderboard(data);
+                })
+                .catch(e => {
+                    console.warn("讀取排行榜連線異常 (切換至離線模式):", e);
+                    // 發生錯誤時，直接載入假資料，確保 UI 不會空白
+                    window.renderLeaderboard(MOCK_LEADERBOARD);
+                });
+        }
+        
+        // 輔助函式：快速產生參數字串
+        function paramsString(action) {
+            return new URLSearchParams({ action: action }).toString();
+        }
+
+        window.subscribeLeaderboard = () => {
+            fetchLeaderboard(); // 立即抓一次
+            
+            // 清除舊的計時器
+            if(pollingInterval) clearInterval(pollingInterval);
+            
+            // 每 15 秒抓一次新排名
+            pollingInterval = setInterval(fetchLeaderboard, 15000);
+        };
+
+        // 初始化
+        window.onload = () => {
+            window.subscribeLeaderboard();
+        };
+
+    </script>
+
+    <style>
+        :root {
+            --neon-cyan: #00f3ff;
+            --neon-purple: #bc13fe;
+            --neon-green: #0aff00;
+            --neon-yellow: #fcee0a;
+            --neon-gold: #FFD700;
+            --neon-red: #ff003c;
+            --bg-dark: #050505;
+            --glass: rgba(10, 10, 20, 0.95);
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: #fff;
+            font-family: 'Noto Sans TC', sans-serif;
+            overflow: hidden;
+            cursor: default;
+            user-select: none;
+        }
+
+        .font-cyber {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .text-neon-blue { color: var(--neon-cyan); text-shadow: 0 0 5px var(--neon-cyan); }
+        .text-neon-purple { color: var(--neon-purple); text-shadow: 0 0 5px var(--neon-purple); }
+        .text-neon-green { color: var(--neon-green); text-shadow: 0 0 5px var(--neon-green); }
+        .text-neon-yellow { color: var(--neon-yellow); text-shadow: 0 0 5px var(--neon-yellow); }
+        
+        /* Title Gradient */
+        .text-gradient-cyber {
+            background: linear-gradient(to right, #00f3ff, #bc13fe);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 15px rgba(0, 243, 255, 0.6);
+            font-weight: 900;
+            letter-spacing: 2px;
+        }
+
+        .cyber-box {
+            background: var(--glass);
+            border: 2px solid var(--neon-cyan);
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.3), inset 0 0 30px rgba(0, 243, 255, 0.1);
+            position: relative;
+            clip-path: polygon(
+                0 0, 
+                100% 0, 
+                100% calc(100% - 20px), 
+                calc(100% - 20px) 100%, 
+                0 100%
+            );
+        }
+        .cyber-box.purple { border-color: var(--neon-purple); box-shadow: 0 0 15px rgba(188, 19, 254, 0.3); }
+        .cyber-box.green { border-color: var(--neon-green); box-shadow: 0 0 15px rgba(10, 255, 0, 0.3); }
+        
+        .cyber-btn {
+            background: rgba(0, 243, 255, 0.1);
+            border: 2px solid var(--neon-cyan);
+            color: var(--neon-cyan);
+            font-family: 'Orbitron', sans-serif;
+            transition: all 0.2s;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .cyber-btn:hover { 
+            background: var(--neon-cyan); 
+            color: #000; 
+            box-shadow: 0 0 20px var(--neon-cyan); 
+            transform: scale(1.02); 
+        }
+        .cyber-btn:active { transform: scale(0.98); background: #fff; box-shadow: 0 0 30px #fff; }
+
+        .cyber-input {
+            background: rgba(0,0,0,0.7);
+            border: 1px solid var(--neon-cyan);
+            color: var(--neon-cyan);
+            font-family: 'Orbitron', sans-serif;
+        }
+        .cyber-input:focus { outline: none; box-shadow: 0 0 15px var(--neon-cyan); }
+
+        #gameCanvas {
+            border: 2px solid #333;
+            box-shadow: 0 0 30px rgba(0,0,0,0.8);
+            background-color: #050505;
+            background-image: 
+                linear-gradient(rgba(0, 243, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 243, 255, 0.03) 1px, transparent 1px);
+            background-size: 30px 30px;
+        }
+
+        .modal-overlay { background: rgba(0, 0, 0, 0.9); backdrop-filter: blur(5px); }
+
+        .glitch { position: relative; }
+        .glitch::before, .glitch::after { content: attr(data-text); position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        .glitch::before { left: 2px; text-shadow: -1px 0 #bc13fe; clip: rect(24px, 550px, 90px, 0); animation: glitch-anim-2 3s infinite linear alternate-reverse; }
+        .glitch::after { left: -2px; text-shadow: -1px 0 #00f3ff; clip: rect(85px, 550px, 140px, 0); animation: glitch-anim 2.5s infinite linear alternate-reverse; }
+        @keyframes glitch-anim { 0% { clip: rect(11px, 9999px, 81px, 0); } 100% { clip: rect(48px, 9999px, 54px, 0); } }
+        @keyframes glitch-anim-2 { 0% { clip: rect(65px, 9999px, 100px, 0); } 100% { clip: rect(58px, 9999px, 66px, 0); } }
+
+        .answer-option { margin: 0 4px; transition: all 0.2s; }
+        .answer-option:hover, .answer-option.selected {
+            background: rgba(0, 243, 255, 0.15);
+            border-color: var(--neon-yellow);
+            box-shadow: 0 0 10px var(--neon-yellow);
+            transform: translateX(5px);
+        }
+
+        .mystery-fruit-glow {
+            filter: drop-shadow(0 0 5px #FFD700) drop-shadow(0 0 15px #FFA500);
+            animation: pulse-glow 1s infinite alternate;
+        }
+        @keyframes pulse-glow {
+            0% { filter: drop-shadow(0 0 5px #FFD700) drop-shadow(0 0 15px #FFA500); transform: scale(1); }
+            100% { filter: drop-shadow(0 0 10px #FFD700) drop-shadow(0 0 25px #FFA500); transform: scale(1.2); }
+        }
+
+        /* Health Bar */
+        .hp-bar-container {
+            width: 100%;
+            height: 12px;
+            background: #222;
+            border: 1px solid #444;
+            position: relative;
+            overflow: hidden;
+            border-radius: 2px;
+        }
+        .hp-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00f3ff, #0aff00);
+            transition: width 0.3s ease;
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+        }
+        .hp-critical {
+            animation: hp-blink 0.5s infinite;
+            background: linear-gradient(90deg, #ff003c, #ff5e00) !important;
+            box-shadow: 0 0 15px #ff003c;
+        }
+        @keyframes hp-blink {
+            0% { opacity: 1; }
+            50% { opacity: 0.6; }
+            100% { opacity: 1; }
+        }
+
+        /* Footer */
+        #gameFooter { transition: opacity 0.5s; }
+        #gameFooter.hidden-footer { opacity: 0; pointer-events: none; }
+        
+        /* Quiz Modal Fixes */
+        .quiz-modal-inner { 
+            max-height: 90vh; 
+            height: auto;
+            min-height: 60vh;
+            overflow-y: auto; 
+            display: flex; 
+            flex-direction: column; 
+        }
+        .quiz-modal-inner::-webkit-scrollbar { width: 6px; }
+        .quiz-modal-inner::-webkit-scrollbar-thumb { background: var(--neon-cyan); border-radius: 3px; }
+        .quiz-modal-inner::-webkit-scrollbar-track { background: #111; }
+        
+        /* Live Leaderboard Style */
+        #inGameLeaderboard {
+            pointer-events: none; 
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            border-left: 2px solid var(--neon-purple);
+            box-shadow: -5px 0 15px rgba(188, 19, 254, 0.2);
+            top: 200px; 
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col items-center justify-center bg-black overflow-hidden">
+
+    <!-- DATA -->
+    <script>
+        const RAW_PDF_TEXT = `
+1. 關於電腦中資料儲存單位的敘述，下列何者錯誤？ (A)最小的儲存單位為「位元組（byte）」 (B)1 byte＝8 bits (C)1 GB＝1024 MB (D)常見的儲存單位有KB、MB、GB、TB
+《答案》A
+2. 芫芫想幫爺爺將紙本老照片儲存在電腦中，必須先經過下列哪個步驟？ (A)視覺化 (B)實體化 (C)數位化 (D)虛擬化
+《答案》C
+3. 電腦只能識別二進位系統的資料，下列何者是不需經過任何轉換，電腦就能直接讀懂的資料？ (A)3366 (B)10110 (C)2222222 (D)Hello World
+《答案》B
+4. 十進位數字系統以10為基數，逢10就進位，則下列何者不符合十進位數字的表示方式？ (A)10 (B)245 (C)1011 (D)1A2B
+《答案》D
+5. 在電腦中，8個位元可以視為一個單位，又稱為下列何者？ (A)bit (B)MB (C)GB (D)byte
+《答案》D
+6. 小華有四個記憶卡，容量分別為512MB、2GB、1TB、256KB，請問其中容量最大的是哪一個？ (A)512MB (B)2GB (C)1TB (D)256KB
+《答案》C
+7. 日常生活中，許多電器會有標示「○」和「︱」符號的元件，如附圖。這個標示通常代表什麼概念？ (A)開/關 (B)高/低音量 (C)快/慢速度 (D)熱/冷溫度
+《答案》A
+8. 下列何者收錄了世界上大部分的語言和符號，亦是現今作業系統採用的文字編碼？ (A)ASCII (B)QR Code (C)Big-5 code (D)Unicode
+《答案》D
+9. 下列何者是由臺灣資策會所制定，亦是繁體中文最常使用的文字編碼？ (A)ASCII (B)QR Code (C)Big-5 code (D)Unicode
+《答案》C
+10. 我們在電腦中輸入的文字資料，必須透過下列何種方法，才能轉換成電腦可以理解的內容？ (A)上傳 (B)下載 (C)編輯 (D)編碼
+《答案》D
+11. 將鍵盤輸入的文字資料轉換成電腦可以理解的內容之過程，則稱為下列何者？ (A)格式化 (B)壓縮 (C)編碼 (D)解碼
+《答案》C
+12. 若將同一個聲音檔案儲存成WAV、MP3兩種格式，下列何者檔案較小？ (A)WAV (B)MP3 (C)兩者相同 (D)無法比較
+《答案》B
+13. 當聲波的頻率和強度達到特定的範圍時，才能被聽覺系統所接收。若人耳能聽到的頻率大約在20Hz～20,000Hz，指的是下列哪一個影響聲音的因素？ (A)音色 (B)音調 (C)響度 (D)震度
+《答案》B
+14. 如果長期處於音量85分貝以上的環境下，可能會使聽力受損。請問「音量」指的是下列何者？ (A)音調 (B)音色 (C)響度 (D)頻率
+《答案》C
+15. 「取樣頻率」的單位通常是赫茲（Hz）。關於取樣頻率，下列敘述何者正確？ (A)取樣頻率越高，每一秒內取樣的次數越少 (B)取樣頻率越高，數位化後的聲音越接近原音 (C)取樣頻率與聲音的音量大小有關 (D)取樣頻率與聲音的音色有關
+《答案》B
+16. 聲音數位化過程中，「量化」指的是什麼？ (A)記錄聲波的波形特色 (B)將聲音檔案壓縮以減少容量 (C)將振幅的高度切割成相等的間距，並歸類為數值 (D)計算聲音檔案的大小
+《答案》C
+17. 聲音量化時採用的位元數會影響數位化聲音的品質。若以8位元量化，可將振幅劃分成多少個間距？ (A)8 (B)16 (C)128 (D)256
+《答案》D
+18. 下列哪一種聲音檔案格式不會經過壓縮，因此音質不會失真，但檔案相對較大？ (A).mid (B).mp3 (C).wav (D).gif
+《答案》C
+19. 鳴鳴想將一張照片轉成黑白兩色的照片，應將照片量化成多少位元的圖像？ (A)0位元 (B)1位元 (C)2位元 (D)3位元
+《答案》B
+20. 若影像的尺寸相同，則下列哪個影像的畫質最好？ (A)100 DPI的櫻花照 (B)200 DPI的寵物照 (C)300 DPI的自拍照 (D)以上畫質皆相同
+《答案》C
+21. 藉由數位相機將影像取樣與量化，轉換為數位影像的過程，稱之為什麼？ (A)影像數位化 (B)影像編碼化 (C)影像程式化 (D)影像像素化
+《答案》A
+22. 數位影像可以分為兩種主要類型，以不同的方式記錄影像資訊。下列何者是這兩種主要的數位影像類型？ (A)原始圖與加工圖 (B)點陣圖與向量圖 (C)灰階圖與彩色圖 (D)靜態圖與動態圖
+《答案》B
+23. 有一張以許多小方塊組成的數位圖片，當圖片放大時，這些小方塊會變得更明顯，且影像邊緣會出現鋸齒狀。請問這張圖片屬於下列哪一種類型？ (A)向量圖 (B)概念圖 (C)流程圖 (D)點陣圖
+《答案》D
+24. 下列哪一種影像檔案格式通常不會經過壓縮，因此畫質不會失真，但檔案相對較大？ (A).bmp (B).jpeg (C).gif (D).png
+《答案》A
+25. 電腦的發展經歷了幾個世代，其中第三代電腦是使用哪種電子元件作為其核心？ (A)真空管 (B)電晶體 (C)積體電路 (D)超大型積體電路
+《答案》C
+26. 下列哪一項是維護電腦系統時，有助於提升系統安全與穩定性的常見作法？ (A)停用網路防火牆 (B)定期進行作業系統更新 (C)安裝來源不明的免費軟體 (D)增加硬碟的總容量
+《答案》B
+27. 世界上第一臺智慧型手機使用的是何種作業系統？ (A)Android (B)iOS (C)Windows (D)Linux
+《答案》B
+28. 下列哪一種系統平臺，是利用遠端伺服器主機提供運算服務，使用者透過網路連線即可使用？ (A)電腦系統平臺 (B)可攜式系統平臺 (C)嵌入式系統平臺 (D)雲端系統平臺
+《答案》D
+29. 小明正在使用智慧型手錶記錄今天的跑步路徑和心率。請問智慧型手錶屬於哪一種系統平臺？ (A)嵌入式系統平臺 (B)可攜式系統平臺 (C)電腦系統平臺 (D)雲端系統平臺
+《答案》B
+30. 下列哪一項裝置通常被歸類為嵌入式系統平臺？ (A)智慧型手機 (B)筆記型電腦 (C)全自動洗衣機 (D)雲端伺服器
+《答案》C
+31. 聲音的取樣頻率，指的是每一秒內，對聲音訊號取樣的次數。阿儒利用下列不同的取樣頻率對聲音取樣，請問何者會最接近原始聲音？ (A)20 kHz (B)96 kHz (C)441 Hz (D) 500 Hz
+《答案》B
+32. 下列硬體中，哪一項兼具輸入單元與輸出單元的功能？ (A)鍵盤 (B)喇叭 (C)麥克風 (D)平板電腦螢幕
+《答案》D
+33. 下列哪一種電腦維護方式，不會使視窗作業系統更加安全穩定？ (A)增加硬碟大小 (B)啟動網路防火牆 (C)定期更新作業系統 (D)安裝正版的防毒軟體
+《答案》A
+34. 二進位數字「11011」轉成十進位，其數字為何？ (A)24 (B)25 (C)26 (D)27
+《答案》D
+35. 關於二進位數字系統的敘述，下列何者錯誤？ (A)二進位數字系統，每逢二就要進位 (B)二進位數字系統不能超過二位數 (C)電腦是使用二進位數字系統來儲存資料 (D)二進位數字系統的表示方式，不包含ABCD
+《答案》B
+36. 十進位數字「10」，轉換成二進位數字是多少？ (A)10 (B)101 (C)1010 (D)1011
+《答案》C
+37. 電腦中用來儲存資料的最小單位是什麼？ (A)位元組 (B)位元 (C)KB (D)MB
+《答案》B
+38. Big-5 code是常見的文字編碼系統之一，普及於臺灣、香港、澳門，下列關於Big-5 code的敘述，何者錯誤？ (A)Big-5 code以16位元編碼 (B)Big-5 code由臺灣資策會制定 (C)Big-5 code收錄了世界上所有的文字 (D)Big-5 code是繁體中文作業系統的常用編碼方式
+《答案》C
+39. 若有一個正整數以8位元儲存為「00000110」，則下列何者是其十進位數字？ (A)2 (B)6 (C)8 (D)11
+《答案》B
+40. 聲音會受到響度、音調、音色這三個因素的影響。我們可以分辨不同人說話的聲音，是受到下列何者的影響？ (A)音色 (B)音調 (C)響度 (D)頻率
+《答案》A
+41. 下列關於聲音數位化品質的敘述，何者正確？ (A)在取樣頻率固定的情況下，量化的位元數越高，所記錄的曲線越平滑 (B)量化的位元數越高，聲音檔案大小越小 (C)取樣頻率越低，越接近原始聲音 (D)量化只影響音色，不影響音調和響度
+《答案》A
+42. 影像的畫質取決於解析度，例如：100 DPI、300 DPI等。請問解析度是以下列何者作為長度單位？ (A)公分 (B)公尺 (C)英吋 (D)英尺
+《答案》C
+43. 藍藍將作業儲存在電腦中，且重新開機後檔案不會消失。請問藍藍儲存檔案的位置為下列何者？ (A)暫存器 (B)快取記憶體 (C)輔助記憶體 (D)隨機存取記憶體
+《答案》C
+44. 記憶單元可分為暫存器、快取記憶體、隨機存取記憶體、輔助記憶體四種。下列選項中，何者的存取速度最快？ (A)暫存器 (B)快取記憶體 (C)輔助記憶體 (D)隨機存取記憶體
+《答案》A
+45. 記憶單元的存取速度越快，價格就越昂貴。下列記憶體單元中，何者的單位價格通常最高？ (A)暫存器 (B)快取記憶體 (C)輔助記憶體 (D)隨機存取記憶體
+《答案》A
+46. 記憶單元可分為下列四種。試問電腦斷電後，何者儲存的資料就會消失？ 甲、輔助記憶體 乙、隨機存取記憶體 丙、快取記憶體 丁、暫存器 (A)僅甲 (B)甲、乙 (C)甲、乙、丙 (D)乙、丙、丁
+《答案》D
+47. 阿泰採購了一臺以英特爾(Intel)CPU為核心的電腦主機，為了方便支援大量的軟硬體，所以選擇安裝目前市占率較高的作業系統。請問阿泰安裝的作業系統屬於哪一類別？ (A)ezgo (B)Linux (C)macOS (D)Windows
+《答案》D
+48. 資訊組長租用雲端虛擬主機來設置管理系統，以節省硬體設備的架設和維護問題。請問「雲端虛擬主機」屬於雲端系統平臺中的哪一類服務？ (A)硬體即服務 (B)軟體即服務 (C)平臺即服務 (D)基礎設施即服務
+《答案》D
+49. 關於智慧型手機的「觸控螢幕」與電腦硬體五大單元的敘述，下列敘述何者最正確？ (A)是輸入單元 (B)是輸出單元 (C)暨屬於輸入單元，又屬於輸出單元 (D)暨非輸入單元，又非輸出單元
+《答案》C
+`;
+
+        function parseQuestions(text) {
+            const questions = [];
+            const regex = /(\d+)\.\s+([\s\S]+?)\s*\(A\)\s*([\s\S]+?)\s*\(B\)\s*([\s\S]+?)\s*\(C\)\s*([\s\S]+?)\s*\(D\)\s*([\s\S]+?)\s*《答案》\s*([A-D])/g;
+            let match;
+            while ((match = regex.exec(text)) !== null) {
+                questions.push({
+                    id: match[1],
+                    question: match[2].trim(),
+                    options: { A: match[3].trim(), B: match[4].trim(), C: match[5].trim(), D: match[6].trim() },
+                    answer: match[7].trim()
+                });
+            }
+            return questions;
+        }
+
+        function getRandomQuestions(allQuestions, count) {
+            const shuffled = [...allQuestions].sort(() => 0.5 - Math.random());
+            return shuffled.slice(0, count);
+        }
+    </script>
+
+    <!-- Start Screen (Compact Layout) -->
+    <div id="startScreen" class="absolute inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-md overflow-y-auto py-8 pb-24">
+        <div class="cyber-box purple flex flex-col md:flex-row max-w-5xl w-full mx-4 overflow-hidden max-h-[90vh]">
+            <!-- Left Panel -->
+            <div class="w-full md:w-1/3 p-6 bg-black/50 flex flex-col justify-center border-b md:border-b-0 md:border-r border-gray-700">
+                <h1 class="text-4xl font-cyber text-gradient-cyber mb-4 glitch text-center font-bold" data-text="CORE CODE: 資訊獵手">
+                    CORE CODE: 資訊獵手
+                </h1>
+                
+                <div class="space-y-4 my-4">
+                    <div>
+                        <label class="block text-neon-blue mb-1 font-cyber text-sm">CLASS ID (班級)</label>
+                        <input type="text" id="inputClass" class="cyber-input w-full p-2 text-lg rounded bg-transparent" placeholder="e.g. 901">
+                    </div>
+                    <div>
+                        <label class="block text-neon-blue mb-1 font-cyber text-sm">SEAT NO. (座號)</label>
+                        <input type="text" id="inputSeat" class="cyber-input w-full p-2 text-lg rounded bg-transparent" placeholder="e.g. 01">
+                    </div>
+                    <div>
+                        <label class="block text-neon-blue mb-1 font-cyber text-sm">CODENAME (姓名)</label>
+                        <input type="text" id="inputName" class="cyber-input w-full p-2 text-lg rounded bg-transparent" placeholder="YOUR NAME">
+                    </div>
+                </div>
+                
+                <button onclick="startGame()" class="cyber-btn mt-4 px-6 py-3 text-lg font-bold rounded w-full">
+                    INITIALIZE SYSTEM
+                </button>
+                <div class="mt-4 text-center text-neon-red text-xs font-bold bg-black/30 p-2 rounded border border-neon-red">
+                    ⚠️ 本遊戲僅限電腦版遊玩 (PC/Desktop Only)
+                </div>
+            </div>
+
+            <!-- Right Panel: Rules -->
+            <div class="w-full md:w-2/3 p-6 text-gray-300 overflow-y-auto bg-gray-900/30">
+                <h3 class="text-2xl text-neon-green font-bold mb-4 border-b border-gray-700 pb-2">/// MISSION BRIEFING ///</h3>
+                <div class="grid grid-cols-1 gap-4 text-sm">
+                    <div>
+                        <h4 class="text-neon-yellow font-bold mb-1"><i class="fas fa-gamepad"></i> 操作與規則</h4>
+                        <ul class="list-disc list-inside space-y-1 text-gray-400">
+                            <li>操控數據蛇<strong>依序</strong>尋找旗幟 <strong>1 - 25</strong> 進行答題。</li>
+                            <li><strong>生命值歸零時，任務失敗，需重新開始！</strong></li>
+                            <li><strong>每答對 5 題</strong>，數據蛇的身長會增加。</li>
+                            <li><strong>咬到蛇尾</strong> 或 <strong>答錯題目</strong> 會扣除生命值。</li>
+                            <li><strong>答對題目</strong> 可微幅回復生命值 (+5%)。</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="text-neon-blue font-bold mb-1"><i class="fas fa-heartbeat"></i> 道具與獎勵</h4>
+                        <ul class="list-disc list-inside space-y-1 text-gray-400">
+                            <li><strong>紅色數據點：</strong> 獲得基本分數與金幣。</li>
+                            <li><strong>數據修復包 (藍色果實)：</strong> 隨機出現，吃到可恢復大量生命值。</li>
+                            <li><strong>神秘果實 (金黃閃爍)：</strong> 30秒 <strong>「幽靈模式」</strong> (穿牆)。</li>
+                            <li>連勝可獲大量金幣。</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="mt-6 text-xs text-gray-600 text-center">
+                    SYSTEM STATUS: ONLINE // GITHUB COMPATIBLE
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Leaderboard -->
+    <div id="inGameLeaderboard" class="hidden absolute top-48 right-4 w-48 p-2 rounded z-30 flex flex-col gap-1 hidden lg:flex">
+        <div class="text-xs text-neon-purple font-cyber border-b border-purple-800 pb-1 mb-1 text-center">LIVE RANKING</div>
+        <div id="liveLeaderboardList" class="flex flex-col gap-1">
+            <div class="text-center text-gray-500 text-xs">LOADING...</div>
+        </div>
+    </div>
+
+    <!-- HUD -->
+    <div id="hud" class="absolute top-0 left-0 w-full p-4 flex justify-between items-start pointer-events-none hidden z-20">
+        <div class="cyber-box p-4 min-w-[200px] bg-black/80">
+            <div class="text-neon-blue font-cyber text-sm">OPERATOR</div>
+            <div id="displayPlayer" class="text-xl font-bold text-white">---</div>
+            <div class="mt-2 text-neon-purple font-cyber text-sm">TARGET FLAG</div>
+            <div class="text-4xl font-bold text-white flex items-center mt-1">
+                <i class="fas fa-flag mr-3 text-neon-purple"></i>
+                <span id="displayTarget" class="text-neon-yellow">1</span> <span class="text-xl text-gray-400 ml-2">/ 25</span>
+            </div>
+        </div>
+
+        <div class="flex flex-col items-center w-1/3">
+             <div id="countdownOverlay" class="hidden text-9xl font-cyber text-neon-yellow glitch font-bold drop-shadow-[0_0_15px_rgba(255,255,0,0.8)]" data-text="5">5</div>
+             <!-- HP Bar -->
+             <div class="w-full max-w-md mt-2 pointer-events-auto">
+                 <div class="flex justify-between text-xs font-cyber mb-1">
+                     <span class="text-neon-green">SYSTEM INTEGRITY</span>
+                     <span id="hpText" class="text-white">100%</span>
+                 </div>
+                 <div class="hp-bar-container rounded">
+                     <div id="hpBar" class="hp-bar-fill" style="width: 100%;"></div>
+                 </div>
+                 <div id="hpWarning" class="hidden text-neon-red text-center text-sm font-bold mt-1 animate-pulse">WARNING: CRITICAL DAMAGE</div>
+             </div>
+        </div>
+
+        <div class="cyber-box green p-4 min-w-[200px] text-right bg-black/80">
+            <div class="text-neon-green font-cyber text-sm">SCORE</div>
+            <div id="displayScore" class="text-4xl font-bold text-white">0000</div>
+            <div class="flex justify-end gap-6 mt-2">
+                <div>
+                    <div class="text-neon-yellow font-cyber text-xs">COINS</div>
+                    <div id="displayCoins" class="text-2xl text-white font-bold"><i class="fas fa-coins text-yellow-400"></i> 0</div>
+                </div>
+                <div>
+                    <div class="text-neon-blue font-cyber text-xs">STREAK</div>
+                    <div id="displayStreak" class="text-2xl text-white font-bold">x0</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Container -->
+    <div id="gameContainer" class="relative hidden">
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+    </div>
+
+    <!-- Quiz Modal -->
+    <div id="quizModal" class="absolute inset-0 z-40 hidden items-center justify-center modal-overlay p-4">
+        <div class="cyber-box p-6 w-full max-w-4xl bg-black relative flex flex-col quiz-modal-inner shadow-2xl">
+            <!-- Header -->
+            <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2 flex-shrink-0">
+                <h2 class="text-2xl font-cyber text-neon-blue truncate">
+                    <i class="fas fa-terminal mr-2"></i>DECRYPTION
+                </h2>
+                <div class="text-right flex-shrink-0">
+                    <div class="text-xs text-neon-pink font-cyber">TIME</div>
+                    <div id="quizTimer" class="text-4xl font-cyber text-neon-pink">30</div>
+                </div>
+            </div>
+            
+            <!-- Question Content -->
+            <div id="quizContent" class="hidden flex-1 overflow-y-auto px-1 flex flex-col">
+                <!-- Question -->
+                <div class="mb-6">
+                    <p id="questionText" class="text-lg md:text-xl leading-relaxed font-bold text-white font-sans"></p>
+                </div>
+                
+                <!-- Options (Default View) -->
+                <div id="optionsGrid" class="grid grid-cols-1 gap-4 mb-4 p-1">
+                    <!-- Options injected here -->
+                </div>
+
+                <!-- Result View (Hidden by default, replaces options when answered) -->
+                <div id="resultView" class="hidden flex-col items-center justify-center py-8 animate-fade-in">
+                    <div id="resultIcon" class="text-8xl mb-4"></div>
+                    <div id="resultText" class="text-4xl font-cyber font-bold mb-6"></div>
+                    <div id="resultAnswer" class="text-xl text-gray-400 mb-8 font-sans"></div>
+                    
+                    <button id="continueBtn" onclick="resumeGame()" class="cyber-btn px-12 py-4 w-full md:w-2/3 text-2xl font-bold hover:scale-105 transform transition focus:outline-none focus:ring-4 focus:ring-neon-blue">
+                        CONTINUE / 繼續遊戲
+                    </button>
+                    <div class="text-gray-500 text-sm mt-4">按 Enter 鍵繼續</div>
+                </div>
+            </div>
+
+            <!-- Pre-Quiz Countdown -->
+            <div id="quizCountdown" class="text-center py-20">
+                <div class="text-5xl font-cyber text-neon-green mb-4">DECRYPTING...</div>
+                <div class="text-7xl font-cyber text-white mb-8" id="preQuizTimer">3</div>
+                <div class="loading-bar w-full h-2 bg-gray-800 rounded overflow-hidden">
+                    <div class="h-full bg-neon-green w-0 animate-[load_3s_linear_forwards]"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="endScreen" class="absolute inset-0 z-50 hidden flex-col items-center justify-center bg-black/95">
+        <div class="cyber-box green p-8 max-w-4xl w-full text-center max-h-[90vh] overflow-y-auto">
+            <h1 id="endTitle" class="text-5xl font-cyber text-neon-green mb-4 glitch" data-text="MISSION COMPLETE">MISSION COMPLETE</h1>
+            
+            <div class="grid grid-cols-4 gap-4 mb-6 mt-4">
+                <div class="bg-gray-900/80 p-4 rounded border border-gray-700">
+                    <div class="text-gray-400 text-sm mb-1">TOTAL SCORE</div>
+                    <div id="endScore" class="text-3xl text-neon-blue font-bold">0</div>
+                </div>
+                <div class="bg-gray-900/80 p-4 rounded border border-gray-700">
+                    <div class="text-gray-400 text-sm mb-1">ACCURACY</div>
+                    <div id="endAccuracy" class="text-3xl text-neon-pink font-bold">0%</div>
+                </div>
+                <div class="bg-gray-900/80 p-4 rounded border border-gray-700">
+                    <div class="text-gray-400 text-sm mb-1">COINS</div>
+                    <div id="endCoins" class="text-3xl text-neon-yellow font-bold">0</div>
+                </div>
+                <div class="bg-gray-900/80 p-4 rounded border border-gray-700">
+                    <div class="text-gray-400 text-sm mb-1">HP BONUS</div>
+                    <div id="endHpBonus" class="text-3xl text-neon-green font-bold">0</div>
+                </div>
+            </div>
+
+            <div id="rankDisplay" class="text-2xl font-bold mb-4 font-cyber"></div>
+            <div id="rankMessage" class="text-xl text-red-400 mb-6 italic font-bold"></div>
+
+            <!-- Leaderboard -->
+            <div class="mb-6 bg-black/40 p-4 rounded border border-gray-800">
+                <h3 class="text-neon-blue font-cyber mb-2 text-lg">TOP 10 AGENTS</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="text-gray-500 font-cyber border-b border-gray-700">
+                            <tr>
+                                <th class="p-2">RANK</th>
+                                <th class="p-2">AGENT</th>
+                                <th class="p-2">CLASS</th>
+                                <th class="p-2">SCORE</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaderboardBody" class="font-mono text-white">
+                            <tr><td colspan="4" class="p-4 text-center">LOADING DATA...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <button onclick="location.reload()" class="cyber-btn px-12 py-3 text-xl font-bold">
+                REBOOT SYSTEM
+            </button>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer id="gameFooter" class="fixed bottom-0 w-full p-4 text-center text-gray-500 text-sm z-50 bg-black/80 backdrop-blur-sm border-t border-gray-800 font-cyber">
+        遊戲構思: CLIT Classroom | 遊戲生成: Google Gemini
+        <a href="https://clitclassroom.github.io/" target="_blank" class="ml-2 text-white hover:text-neon-blue transition-colors">
+            <i class="fab fa-github text-lg"></i>
+        </a>
+    </footer>
+
+    <script>
+        // --- AUDIO ENGINE ---
+        const AudioEngine = {
+            ctx: null,
+            isPlaying: false,
+            init: function() { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); },
+            playTone: function(freq, type, duration, vol=0.1) {
+                if (!this.ctx) this.init();
+                if (this.ctx.state === 'suspended') this.ctx.resume();
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + duration);
+            },
+            playBGM: function() {
+                if(this.isPlaying) return;
+                this.isPlaying = true;
+                if (!this.ctx) this.init();
+                const bassNotes = [110, 110, 146, 146, 164, 164, 146, 146];
+                const melodyNotes = [440, 0, 440, 493, 523, 493, 440, 392];
+                let noteIndex = 0;
+                const playStep = () => {
+                    if(!this.isPlaying) return;
+                    const now = this.ctx.currentTime;
+                    const bass = this.ctx.createOscillator();
+                    const bassGain = this.ctx.createGain();
+                    bass.type = 'triangle';
+                    bass.frequency.value = bassNotes[noteIndex % bassNotes.length];
+                    bassGain.gain.setValueAtTime(0.05, now);
+                    bassGain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+                    bass.connect(bassGain);
+                    bassGain.connect(this.ctx.destination);
+                    bass.start();
+                    bass.stop(now + 0.2);
+                    if(noteIndex % 2 === 0) {
+                        const freq = melodyNotes[(noteIndex/2) % melodyNotes.length];
+                        if(freq > 0) {
+                            const mel = this.ctx.createOscillator();
+                            const melGain = this.ctx.createGain();
+                            mel.type = 'square';
+                            mel.frequency.value = freq;
+                            melGain.gain.setValueAtTime(0.02, now);
+                            melGain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+                            mel.connect(melGain);
+                            melGain.connect(this.ctx.destination);
+                            mel.start();
+                            mel.stop(now + 0.3);
+                        }
+                    }
+                    noteIndex++;
+                    setTimeout(playStep, 200);
+                };
+                playStep();
+            },
+            stopBGM: function() { this.isPlaying = false; }
+        };
+
+        const SFX = {
+            hover: () => AudioEngine.playTone(400, 'sine', 0.1),
+            select: () => AudioEngine.playTone(800, 'square', 0.1),
+            flag: () => { AudioEngine.playTone(1200, 'sine', 0.1); setTimeout(() => AudioEngine.playTone(1800, 'sine', 0.2), 100); },
+            correct: () => { AudioEngine.playTone(600, 'sine', 0.1); setTimeout(() => AudioEngine.playTone(900, 'sine', 0.4), 100); },
+            wrong: () => { AudioEngine.playTone(150, 'sawtooth', 0.4); setTimeout(() => AudioEngine.playTone(100, 'sawtooth', 0.4), 200); },
+            powerup: () => { [400, 500, 600, 800, 1000].forEach((f, i) => setTimeout(() => AudioEngine.playTone(f, 'square', 0.1), i * 50)); },
+            ghost: () => { AudioEngine.playTone(200, 'sine', 1.0); AudioEngine.playTone(205, 'sine', 1.0); },
+            heal: () => { [400, 600, 800].forEach((f, i) => setTimeout(() => AudioEngine.playTone(f, 'sine', 0.2), i * 100)); } 
+        };
+    </script>
+
+    <script>
+        // --- GAME LOGIC ---
+        const GRID_SIZE = 25; 
+        const COLS = 32; 
+        const ROWS = 24; 
+        const TOTAL_FLAGS = 25;
+        const BASE_SPEED = 250; 
+        const MAX_HP = 100;
+        
+        let player = { class: '', seat: '', name: '' };
+        let gameActive = false;
+        let snake = [];
+        let direction = { x: 1, y: 0 };
+        let nextDirection = { x: 1, y: 0 };
+        let currentFlagTarget = 1; 
+        let flags = []; 
+        let score = 0;
+        let coins = 0;
+        let streak = 0;
+        let hp = MAX_HP;
+        let questions = [];
+        let items = [];
+        let correctCount = 0;
+        let ghostMode = false;
+        let ghostTimer = 0;
+        let ghostInterval;
+        let quizTimeInterval;
+        let walls = [];
+        let quizInputActive = false;
+        
+        function initGame() {
+            const allQuestions = parseQuestions(RAW_PDF_TEXT);
+            questions = getRandomQuestions(allQuestions, 25);
+            hp = MAX_HP;
+            updateHPUI();
+            resetSnake();
+            generateMap();
+            // Initial batch spawn
+            for(let i=0; i<5; i++) spawnItem();
+            if(window.subscribeLeaderboard) window.subscribeLeaderboard();
+        }
+
+        function resetSnake() {
+            snake = [{x: 5, y: 5}, {x: 4, y: 5}, {x: 3, y: 5}];
+            direction = {x: 1, y: 0};
+            nextDirection = {x: 1, y: 0};
+        }
+
+        function generateMap() {
+            walls = [];
+            for(let i=0; i<60; i++) {
+                let wx = Math.floor(Math.random() * (COLS - 2)) + 1;
+                let wy = Math.floor(Math.random() * (ROWS - 2)) + 1;
+                if(wx < 10 && wy < 10) continue;
+                walls.push({x: wx, y: wy});
+            }
+
+            flags = [];
+            for(let i=1; i<=TOTAL_FLAGS; i++) {
+                let pos = getValidPosition();
+                flags.push({id: i, x: pos.x, y: pos.y, collected: false});
+            }
+            spawnItem();
+        }
+
+        function getValidPosition() {
+            let valid = false;
+            let pos = {x:0, y:0};
+            while(!valid) {
+                pos.x = Math.floor(Math.random() * COLS);
+                pos.y = Math.floor(Math.random() * ROWS);
+                let hitWall = walls.some(w => w.x === pos.x && w.y === pos.y);
+                let hitSnake = snake.some(s => s.x === pos.x && s.y === pos.y);
+                let hitFlag = flags.some(f => f.x === pos.x && f.y === pos.y);
+                let hitItem = items.some(i => i.x === pos.x && i.y === pos.y);
+                if(!hitWall && !hitSnake && !hitFlag && !hitItem) valid = true;
+            }
+            return pos;
+        }
+
+        function spawnItem() {
+            let pos = getValidPosition();
+            // Chance: 50% Food, 25% Heal, 25% Mystery
+            let rand = Math.random();
+            let type = 'food';
+            if(rand > 0.75) type = 'heal';
+            else if(rand > 0.5) type = 'mystery';
+            
+            items.push({x: pos.x, y: pos.y, type: type});
+        }
+
+        function checkItemRefill() {
+            // Keep at least 3 items on map
+            if (items.length < 3) {
+                spawnItem();
+            }
+        }
+
+        function startGame() {
+            const c = document.getElementById('inputClass').value;
+            const s = document.getElementById('inputSeat').value;
+            const n = document.getElementById('inputName').value;
+
+            if(!c || !s || !n) {
+                alert("請輸入完整班級、座號與姓名資訊！");
+                return;
+            }
+
+            player = { class: c, seat: s, name: n };
+            document.getElementById('displayPlayer').textContent = `${c}-${s} ${n}`;
+            
+            document.getElementById('startScreen').classList.add('hidden');
+            document.getElementById('gameFooter').classList.add('hidden-footer');
+            document.getElementById('hud').classList.remove('hidden');
+            document.getElementById('gameContainer').classList.remove('hidden');
+            
+            const liveLb = document.getElementById('inGameLeaderboard');
+            if(liveLb) liveLb.classList.remove('hidden');
+
+            AudioEngine.playBGM(); 
+            initGame();
+            startCountdown();
+        }
+
+        function startCountdown() {
+            const el = document.getElementById('countdownOverlay');
+            el.classList.remove('hidden');
+            let count = 5;
+            el.textContent = count;
+            el.dataset.text = count;
+            
+            const timer = setInterval(() => {
+                count--;
+                if(count > 0) {
+                    el.textContent = count;
+                    el.dataset.text = count;
+                    SFX.select();
+                } else {
+                    clearInterval(timer);
+                    el.textContent = "GO!";
+                    el.dataset.text = "GO!";
+                    SFX.powerup();
+                    setTimeout(() => {
+                        el.classList.add('hidden');
+                        gameActive = true;
+                        gameLoop();
+                    }, 1000);
+                }
+            }, 1000);
+        }
+
+        document.addEventListener('keydown', e => {
+            if(document.getElementById('quizModal').classList.contains('hidden')) {
+                if(!gameActive) return;
+                switch(e.key) {
+                    case 'ArrowUp': if(direction.y === 0) nextDirection = {x:0, y:-1}; break;
+                    case 'ArrowDown': if(direction.y === 0) nextDirection = {x:0, y:1}; break;
+                    case 'ArrowLeft': if(direction.x === 0) nextDirection = {x:-1, y:0}; break;
+                    case 'ArrowRight': if(direction.x === 0) nextDirection = {x:1, y:0}; break;
+                }
+            } else {
+                handleQuizInput(e);
+            }
+        });
+
+        // Loop counter for item spawning
+        let loopCount = 0;
+
+        function gameLoop() {
+            if(!gameActive) return;
+            update();
+            draw();
+            
+            // Check item refill every ~2 seconds (approx 12 frames at 160ms)
+            loopCount++;
+            if(loopCount % 12 === 0) {
+                checkItemRefill();
+            }
+
+            setTimeout(() => { requestAnimationFrame(gameLoop); }, BASE_SPEED);
+        }
+
+        function update() {
+            direction = nextDirection;
+            const head = {x: snake[0].x + direction.x, y: snake[0].y + direction.y};
+
+            if(head.x < 0) head.x = COLS - 1;
+            if(head.x >= COLS) head.x = 0;
+            if(head.y < 0) head.y = ROWS - 1;
+            if(head.y >= ROWS) head.y = 0;
+
+            if(snake.some(s => s.x === head.x && s.y === head.y)) {
+                handleDamage("咬到自己了！");
+                resetSnake(); 
+                return;
+            }
+
+            if(!ghostMode && walls.some(w => w.x === head.x && w.y === head.y)) { return; }
+
+            snake.unshift(head);
+
+            let itemIndex = items.findIndex(i => i.x === head.x && i.y === head.y);
+            if(itemIndex !== -1) {
+                let item = items[itemIndex];
+                items.splice(itemIndex, 1);
+                
+                if(item.type === 'mystery') { 
+                    SFX.powerup();
+                    activateGhostMode(); 
+                } else if (item.type === 'heal') {
+                    SFX.heal();
+                    hp = Math.min(MAX_HP, hp + 20); 
+                    updateHPUI();
+                } else { 
+                    SFX.powerup();
+                    score += 50; coins += 5; 
+                }
+                updateHUD();
+            }
+
+            let hitFlag = flags.find(f => f.x === head.x && f.y === head.y);
+            if(hitFlag) {
+                if(hitFlag.id === currentFlagTarget) {
+                    SFX.flag();
+                    gameActive = false;
+                    AudioEngine.stopBGM();
+                    startQuiz(hitFlag.id);
+                }
+            } else {
+                // Growth logic here? No, growth is on correct answer.
+                // So always pop unless we JUST ate food? 
+                // Currently design is: snake size constant unless quiz correct.
+                // So always pop here.
+                snake.pop(); 
+            }
+        }
+
+        function handleDamage(reason, amount = 15) {
+            hp -= amount;
+            updateHPUI();
+            streak = 0;
+            SFX.wrong();
+            updateHUD();
+            
+            if(hp <= 0) {
+                gameOver("SYSTEM FAILURE // 生命值歸零");
+            }
+        }
+
+        function updateHPUI() {
+            const bar = document.getElementById('hpBar');
+            const text = document.getElementById('hpText');
+            const warn = document.getElementById('hpWarning');
+            
+            bar.style.width = `${Math.max(0, hp)}%`;
+            text.textContent = `${Math.max(0, hp)}%`;
+            
+            if(hp <= 30) {
+                bar.classList.add('hp-critical');
+                warn.classList.remove('hidden');
+            } else {
+                bar.classList.remove('hp-critical');
+                warn.classList.add('hidden');
+            }
+        }
+
+        function activateGhostMode() {
+            ghostMode = true;
+            SFX.ghost();
+            clearTimeout(ghostInterval);
+            ghostInterval = setTimeout(() => { ghostMode = false; }, 30000);
+            score += 500;
+            updateHUD();
+        }
+
+        function draw() {
+            const cvs = document.getElementById('gameCanvas');
+            const ctx = cvs.getContext('2d');
+            ctx.clearRect(0, 0, cvs.width, cvs.height);
+
+            ctx.fillStyle = ghostMode ? '#222' : '#1a1a1a';
+            ctx.shadowBlur = 0;
+            walls.forEach(w => {
+                ctx.fillRect(w.x * GRID_SIZE, w.y * GRID_SIZE, GRID_SIZE, GRID_SIZE);
+                ctx.strokeStyle = '#333';
+                ctx.strokeRect(w.x * GRID_SIZE, w.y * GRID_SIZE, GRID_SIZE, GRID_SIZE);
+            });
+
+            items.forEach(i => {
+                let cx = i.x * GRID_SIZE + GRID_SIZE/2;
+                let cy = i.y * GRID_SIZE + GRID_SIZE/2;
+                if(i.type === 'mystery') {
+                    // Gold Mystery
+                    ctx.fillStyle = '#FFD700'; 
+                    ctx.shadowColor = '#FFA500'; 
+                    ctx.shadowBlur = 25;
+                    ctx.beginPath();
+                    for(let k=0; k<5; k++){
+                        ctx.lineTo(Math.cos((18+k*72)/180*Math.PI)*10 + cx, -Math.sin((18+k*72)/180*Math.PI)*10 + cy);
+                        ctx.lineTo(Math.cos((54+k*72)/180*Math.PI)*5 + cx, -Math.sin((54+k*72)/180*Math.PI)*5 + cy);
+                    }
+                    ctx.fill();
+                } else if (i.type === 'heal') {
+                    // Blue Heal
+                    ctx.fillStyle = '#00f3ff';
+                    ctx.shadowColor = '#00f3ff';
+                    ctx.shadowBlur = 15;
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, 7, 0, Math.PI*2);
+                    ctx.fill();
+                    // Cross symbol
+                    ctx.fillStyle = '#fff';
+                    ctx.fillRect(cx-2, cy-5, 4, 10);
+                    ctx.fillRect(cx-5, cy-2, 10, 4);
+                } else {
+                    // Red Food
+                    ctx.fillStyle = '#ff3333';
+                    ctx.shadowColor = '#ff0000';
+                    ctx.shadowBlur = 10;
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, 6, 0, Math.PI*2);
+                    ctx.fill();
+                }
+            });
+
+            flags.forEach(f => {
+                if(f.collected) return;
+                let isTarget = f.id === currentFlagTarget;
+                ctx.shadowBlur = isTarget ? 15 : 0;
+                ctx.shadowColor = isTarget ? '#bd00ff' : 'transparent';
+                ctx.fillStyle = isTarget ? '#bd00ff' : '#555';
+                ctx.fillRect(f.x * GRID_SIZE + 2, f.y * GRID_SIZE + 2, 4, 20); 
+                ctx.fillRect(f.x * GRID_SIZE + 6, f.y * GRID_SIZE + 2, 16, 12); 
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 14px Arial';
+                ctx.fillText(f.id, f.x * GRID_SIZE + 8, f.y * GRID_SIZE + 13);
+            });
+
+            snake.forEach((s, i) => {
+                let color = ghostMode ? `hsl(${Date.now() % 360}, 100%, 50%)` : '#0f0';
+                if(i === 0) color = '#fff';
+                ctx.fillStyle = color;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = color;
+                if(ghostMode) ctx.globalAlpha = 0.6;
+                ctx.fillRect(s.x * GRID_SIZE + 1, s.y * GRID_SIZE + 1, GRID_SIZE - 2, GRID_SIZE - 2);
+                ctx.globalAlpha = 1.0;
+            });
+        }
+
+        // --- QUIZ LOGIC ---
+        let quizSelection = 0; 
+
+        function startQuiz(flagId) {
+            quizInputActive = false; 
+            const modal = document.getElementById('quizModal');
+            const content = document.getElementById('quizContent');
+            const countdown = document.getElementById('quizCountdown');
+            const preQuizTimer = document.getElementById('preQuizTimer');
+            
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            
+            // Reset Views
+            content.classList.add('hidden');
+            document.getElementById('optionsGrid').classList.remove('hidden');
+            document.getElementById('resultView').classList.add('hidden');
+            document.getElementById('resultView').classList.remove('flex');
+            
+            countdown.classList.remove('hidden');
+            
+            let count = 3;
+            preQuizTimer.textContent = count;
+            
+            const timer = setInterval(() => {
+                count--;
+                if(count > 0) {
+                    preQuizTimer.textContent = count;
+                    SFX.select();
+                } else {
+                    clearInterval(timer);
+                    countdown.classList.add('hidden');
+                    content.classList.remove('hidden');
+                    showQuestion();
+                }
+            }, 1000);
+        }
+
+        function showQuestion() {
+            quizInputActive = true; 
+            // Fix: Use currentFlagTarget - 1 to get correct index
+            let qIndex = currentFlagTarget - 1;
+            // The questions array is only 25 items long, so index 0-24. 
+            // currentFlagTarget goes from 1 to 25.
+            // If currentFlagTarget is 1, index is 0. 
+            // Logic is sound, but we must ensure questions array has correct data.
+            
+            const q = questions[qIndex];
+            // Safety check in case q is undefined
+            if (!q) {
+                console.error("Question not found for index:", qIndex);
+                resumeGame();
+                return;
+            }
+
+            document.getElementById('questionText').textContent = `Q${currentFlagTarget}. ${q.question}`;
+            
+            const grid = document.getElementById('optionsGrid');
+            grid.innerHTML = '';
+            quizSelection = -1;
+
+            ['A', 'B', 'C', 'D'].forEach((key, idx) => {
+                const btn = document.createElement('div');
+                btn.className = 'answer-option border border-cyan-500 p-3 rounded text-left text-lg relative cursor-pointer';
+                btn.innerHTML = `<span class="text-neon-purple font-bold mr-3 text-xl">${key}.</span> ${q.options[key]}`;
+                btn.dataset.idx = idx;
+                btn.dataset.key = key;
+                btn.onclick = () => confirmAnswer(key);
+                btn.onmouseenter = () => {
+                    if(!quizInputActive) return;
+                    quizSelection = idx;
+                    updateQuizSelection();
+                    SFX.hover();
+                };
+                grid.appendChild(btn);
+            });
+            
+            // Fix: Ensure feedback area scrolls into view when shown
+            const quizModalInner = document.querySelector('.quiz-modal-inner');
+            if(quizModalInner) quizModalInner.scrollTop = 0; 
+
+            const qTimer = document.getElementById('quizTimer');
+            let timeLeft = 30; 
+            qTimer.textContent = timeLeft;
+            
+            if(quizTimeInterval) clearInterval(quizTimeInterval);
+            
+            quizTimeInterval = setInterval(() => {
+                timeLeft--;
+                qTimer.textContent = timeLeft < 10 ? `0${timeLeft}` : timeLeft;
+                if(timeLeft <= 0) {
+                    clearInterval(quizTimeInterval);
+                    handleAnswerTimeout();
+                }
+            }, 1000);
+        }
+
+        function updateQuizSelection() {
+            const opts = document.getElementById('optionsGrid').children;
+            for(let i=0; i<opts.length; i++) {
+                if(i === quizSelection) opts[i].classList.add('selected', 'bg-cyan-900');
+                else opts[i].classList.remove('selected', 'bg-cyan-900');
+            }
+        }
+
+        let inputDebounce = false;
+        function handleQuizInput(e) {
+            // If result view is visible, Enter resumes game
+            if(!document.getElementById('resultView').classList.contains('hidden')) {
+                if(e.key === 'Enter') {
+                    resumeGame();
+                }
+                return;
+            }
+
+            if(!quizInputActive || inputDebounce) return;
+
+            inputDebounce = true;
+            setTimeout(() => inputDebounce = false, 100);
+
+            if(e.key === 'ArrowUp') {
+                quizSelection--;
+                if(quizSelection < 0) quizSelection = 3;
+                SFX.hover();
+                updateQuizSelection();
+            } else if(e.key === 'ArrowDown') {
+                quizSelection++;
+                if(quizSelection > 3) quizSelection = 0;
+                SFX.hover();
+                updateQuizSelection();
+            } else if(e.key === 'Enter') {
+                if(quizSelection !== -1) {
+                    const key = ['A','B','C','D'][quizSelection];
+                    confirmAnswer(key);
+                }
+            }
+        }
+
+        function handleAnswerTimeout() {
+            showResult(false, true);
+        }
+
+        function confirmAnswer(selected) {
+            if(!quizInputActive) return;
+            clearInterval(quizTimeInterval);
+            quizInputActive = false; 
+
+            let qIndex = currentFlagTarget - 1;
+            const q = questions[qIndex];
+            const correct = q.answer;
+            const isCorrect = (selected === correct);
+
+            showResult(isCorrect, false, correct);
+        }
+
+        function showResult(isCorrect, isTimeout, correctAnswerKey) {
+            // Hide Options, Show Result
+            document.getElementById('optionsGrid').classList.add('hidden');
+            const resultView = document.getElementById('resultView');
+            resultView.classList.remove('hidden');
+            resultView.classList.add('flex');
+
+            const icon = document.getElementById('resultIcon');
+            const text = document.getElementById('resultText');
+            const ansText = document.getElementById('resultAnswer');
+            const btn = document.getElementById('continueBtn');
+
+            // Logic updates
+            if(isTimeout) {
+                SFX.wrong();
+                icon.innerHTML = '<i class="fas fa-hourglass-end text-neon-red"></i>';
+                text.textContent = "TIME OUT";
+                text.className = "text-4xl font-cyber font-bold mb-4 text-neon-red";
+                ansText.textContent = `正確答案: ${questions[currentFlagTarget-1].answer}`;
+                handleDamage("作答超時！", 20);
+            } else if(isCorrect) {
+                SFX.correct();
+                icon.innerHTML = '<i class="fas fa-check-circle text-neon-green"></i>';
+                text.textContent = "CORRECT";
+                text.className = "text-4xl font-cyber font-bold mb-4 text-neon-green";
+                ansText.textContent = "系統代碼解析成功";
+                
+                score += 100;
+                correctCount++;
+                streak++;
+                
+                // Heal on correct
+                hp = Math.min(MAX_HP, hp + 5);
+                updateHPUI();
+
+                if([3, 5, 10, 15, 20].includes(streak)) { score += streak * 50; }
+                coins += 50 + (streak * 10); 
+                // Growth: every 5 correct answers
+                if(correctCount % 5 === 0) { 
+                    snake.push({...snake[snake.length-1]}); 
+                }
+            } else {
+                SFX.wrong();
+                icon.innerHTML = '<i class="fas fa-times-circle text-neon-red"></i>';
+                text.textContent = "WRONG";
+                text.className = "text-4xl font-cyber font-bold mb-4 text-neon-red";
+                ansText.textContent = `正確答案: ${correctAnswerKey}`;
+                handleDamage("答錯了！", 20);
+            }
+
+            btn.classList.remove('hidden');
+            // Auto focus for immediate Enter key press
+            setTimeout(() => btn.focus(), 100);
+            updateHUD();
+        }
+
+        function resumeGame() {
+            // If HP <= 0, game over handles transition
+            if(hp <= 0) return;
+
+            document.getElementById('quizModal').classList.add('hidden');
+            document.getElementById('quizModal').classList.remove('flex');
+            quizInputActive = false;
+            
+            let f = flags.find(flag => flag.id === currentFlagTarget);
+            if(f) f.collected = true;
+            
+            currentFlagTarget++;
+            // Fix: ensure display stays in bounds
+            document.getElementById('displayTarget').textContent = currentFlagTarget <= 25 ? currentFlagTarget : 25;
+
+            // Spawn new items on resume to keep map busy
+            spawnItem();
+
+            if(currentFlagTarget > 25) {
+                endGame(true); 
+            } else {
+                gameActive = true;
+                AudioEngine.playBGM();
+                gameLoop();
+            }
+        }
+
+        function updateHUD() {
+            document.getElementById('displayScore').textContent = score;
+            document.getElementById('displayCoins').innerHTML = `<i class="fas fa-coins text-yellow-400"></i> ${coins}`;
+            document.getElementById('displayStreak').textContent = `x${streak}`;
+        }
+
+        function gameOver(reason) {
+            gameActive = false;
+            AudioEngine.stopBGM();
+            SFX.wrong(); 
+            
+            document.getElementById('quizModal').classList.add('hidden'); 
+            document.getElementById('quizModal').classList.remove('flex');
+
+            showEndScreen(false, reason);
+        }
+
+        function endGame(victory) {
+            gameActive = false;
+            AudioEngine.stopBGM();
+            if(victory) SFX.powerup(); 
+            showEndScreen(victory, "MISSION COMPLETE");
+        }
+
+        function showEndScreen(victory, title) {
+            document.getElementById('hud').classList.add('hidden');
+            document.getElementById('gameContainer').classList.add('hidden');
+            document.getElementById('inGameLeaderboard').classList.add('hidden'); 
+            document.getElementById('endScreen').classList.remove('hidden');
+            document.getElementById('endScreen').classList.add('flex');
+            document.getElementById('gameFooter').classList.remove('hidden-footer');
+
+            const titleEl = document.getElementById('endTitle');
+            titleEl.textContent = title;
+            titleEl.className = victory ? "text-5xl font-cyber text-neon-green mb-4 glitch" : "text-5xl font-cyber text-neon-red mb-4 glitch";
+            titleEl.setAttribute('data-text', title);
+
+            let hpBonus = victory ? hp * 10 : 0;
+            let finalScore = score + hpBonus;
+
+            // Updated Accuracy Calculation: (Correct Count / 25) * 100
+            const acc = Math.round((correctCount / 25) * 100);
+            document.getElementById('endScore').textContent = finalScore;
+            document.getElementById('endAccuracy').textContent = `${acc}%`;
+            document.getElementById('endCoins').textContent = coins;
+            document.getElementById('endHpBonus').textContent = hpBonus;
+
+            let rank = "ROOKIE (菜鳥)";
+            let rankClass = "text-gray-400";
+            
+            if (!victory) {
+                rank = "MISSION FAILED";
+                rankClass = "text-neon-red";
+            } else {
+                if(finalScore >= 6000) { rank = "CYBER LEGEND (傳奇)"; rankClass = "text-neon-yellow"; }
+                else if(finalScore >= 4500) { rank = "ELITE HACKER (菁英)"; rankClass = "text-neon-purple"; }
+                else if(finalScore >= 3000) { rank = "SENIOR AGENT (資深)"; rankClass = "text-neon-green"; }
+                else { rank = "OPERATOR (操作員)"; rankClass = "text-neon-blue"; }
+            }
+            
+            const rDisplay = document.getElementById('rankDisplay');
+            rDisplay.textContent = rank;
+            rDisplay.className = `text-5xl font-bold mb-4 font-cyber ${rankClass} glitch`;
+            rDisplay.dataset.text = rank;
+
+            const msg = document.getElementById('rankMessage');
+            if (!victory) {
+                msg.textContent = "警告：生命值歸零，請重新接受訓練！";
+            } else if(finalScore < 3000 || acc < 60) {
+                msg.textContent = "⚠️ 警告：核心數據同步率過低。請熟讀期末考題庫內容再來挑戰。";
+            } else {
+                msg.textContent = "SYSTEM SYNC COMPLETE. 任務圓滿達成！";
+            }
+
+            const playerData = {
+                name: player.name,
+                class: player.class,
+                seat: player.seat,
+                score: finalScore,
+                accuracy: acc,
+                coins: coins
+            };
+            
+            // GAS Integration: Save score and then continue updating leaderboard
+            window.saveScore(playerData);
+            window.subscribeLeaderboard();
+        }
+    </script>
+    
+    <style>
+        @keyframes load { 0% { width: 0; } 100% { width: 100%; } }
+        @keyframes fade-in { 0% { opacity: 0; transform: translateY(10px); } 100% { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fade-in 0.3s ease-out forwards; }
+    </style>
+</body>
+</html>

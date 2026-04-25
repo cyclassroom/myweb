@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Font Awesome 裝飾圖示設計指南</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* 自定義字型與微調 */
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .code-block {
+            font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+        }
+        /* 隱藏滾動條但保留功能 */
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="text-slate-700 pb-20">
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-5xl mx-auto px-6 py-4 flex justify-between items-center">
+            <h1 class="text-xl font-bold text-slate-800"><i class="fa-solid fa-shapes text-indigo-500 mr-2"></i>裝飾圖示設計指南</h1>
+            <div class="text-sm text-slate-500">基於 Font Awesome & Tailwind</div>
+        </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto px-6 py-8 space-y-12">
+
+        <!-- Section 1: 核心觀念 -->
+        <section class="bg-indigo-50 rounded-2xl p-8 border border-indigo-100">
+            <h2 class="text-2xl font-bold mb-4 text-indigo-900">核心設計心法</h2>
+            <div class="grid md:grid-cols-3 gap-6 text-indigo-800">
+                <div class="flex items-start gap-3">
+                    <i class="fa-solid fa-1 text-xl mt-1 opacity-50"></i>
+                    <div>
+                        <strong class="block mb-1">內容是主角</strong>
+                        <p class="text-sm opacity-80">圖示只是空氣中的光，不要搶戲。</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3">
+                    <i class="fa-solid fa-2 text-xl mt-1 opacity-50"></i>
+                    <div>
+                        <strong class="block mb-1">透明度是關鍵</strong>
+                        <p class="text-sm opacity-80">Opacity 30-50% 是最安全區間。</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3">
+                    <i class="fa-solid fa-3 text-xl mt-1 opacity-50"></i>
+                    <div>
+                        <strong class="block mb-1">防止誤觸</strong>
+                        <p class="text-sm opacity-80">一定要加 <code>pointer-events-none</code>。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: 實戰 UI 範本 (PDF 重點) -->
+        <section>
+            <div class="flex items-center gap-2 mb-6">
+                <h2 class="text-2xl font-bold text-slate-800">設計師 UI 範本組</h2>
+                <span class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full font-bold">可直接複製</span>
+            </div>
+            
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                
+                <!-- 範本 1: 文藝浮水印 (最常用) -->
+                <div class="space-y-3">
+                    <div class="text-sm font-bold text-slate-500 flex justify-between">
+                        <span>01. 文藝浮水印卡片</span>
+                        <span class="text-xs font-normal bg-slate-200 px-2 py-0.5 rounded">作業/閱讀</span>
+                    </div>
+                    <!-- Component Display -->
+                    <div class="relative bg-white rounded-xl p-6 shadow-sm border border-slate-100 overflow-hidden h-40 flex flex-col justify-center group transition-all hover:shadow-md">
+                        <!-- 裝飾圖示 -->
+                        <i class="fa-regular fa-feather absolute bottom-[-14px] right-6 text-stone-200 opacity-60 text-7xl -rotate-12 pointer-events-none group-hover:rotate-0 transition-transform duration-500"></i>
+                        
+                        <h3 class="text-lg font-bold text-slate-800 z-10 relative">閱讀任務</h3>
+                        <p class="text-sm text-slate-500 z-10 relative">請閱讀第三章後完成心得報告。</p>
+                    </div>
+                    <!-- Code Snippet -->
+                    <div class="bg-slate-800 rounded-lg p-3 text-xs text-slate-300 font-mono relative group/code">
+                        <button onclick="copyToClipboard('code1')" class="absolute top-2 right-2 opacity-0 group-hover/code:opacity-100 bg-white/20 hover:bg-white/40 text-white px-2 py-1 rounded transition">複製</button>
+                        <code id="code1" class="break-all">
+&lt;i class="fa-regular fa-feather absolute -bottom-4 right-6 text-stone-200 opacity-60 text-7xl -rotate-12 pointer-events-none"&gt;&lt;/i&gt;
+                        </code>
+                    </div>
+                </div>
+
+                <!-- 範本 2: 標題點綴 (Section Title) -->
+                <div class="space-y-3">
+                    <div class="text-sm font-bold text-slate-500 flex justify-between">
+                        <span>02. 標題點綴型</span>
+                        <span class="text-xs font-normal bg-slate-200 px-2 py-0.5 rounded">單元/區塊</span>
+                    </div>
+                    <!-- Component Display -->
+                    <div class="bg-white rounded-xl p-6 shadow-sm border border-slate-100 h-40 flex items-center justify-center">
+                        <div class="flex items-center gap-3">
+                            <!-- 修正：使用 fa-wand-magic-sparkles 代替付費的 fa-sparkles -->
+                            <i class="fa-solid fa-wand-magic-sparkles text-amber-400 opacity-80 text-xl animate-pulse"></i>
+                            <h2 class="text-2xl font-bold text-slate-800">單元重點</h2>
+                        </div>
+                    </div>
+                    <!-- Code Snippet -->
+                    <div class="bg-slate-800 rounded-lg p-3 text-xs text-slate-300 font-mono relative group/code">
+                        <button onclick="copyToClipboard('code2')" class="absolute top-2 right-2 opacity-0 group-hover/code:opacity-100 bg-white/20 hover:bg-white/40 text-white px-2 py-1 rounded transition">複製</button>
+                        <code id="code2" class="break-all">
+&lt;i class="fa-solid fa-wand-magic-sparkles text-amber-400 opacity-80"&gt;&lt;/i&gt;
+                        </code>
+                    </div>
+                </div>
+
+                <!-- 範本 3: 自然氛圍 (Ambient) -->
+                <div class="space-y-3">
+                    <div class="text-sm font-bold text-slate-500 flex justify-between">
+                        <span>03. 自然背景氛圍</span>
+                        <span class="text-xs font-normal bg-slate-200 px-2 py-0.5 rounded">生活/紀錄</span>
+                    </div>
+                    <!-- Component Display -->
+                    <div class="relative bg-stone-50 rounded-xl p-6 border border-stone-100 overflow-hidden h-40 flex flex-col justify-center">
+                        <!-- 裝飾 -->
+                        <i class="fa-solid fa-leaf absolute top-4 right-4 text-emerald-200 opacity-50 text-6xl rotate-12 pointer-events-none"></i>
+                        
+                        <h3 class="font-bold text-stone-700 mb-1 z-10 relative">今日觀察</h3>
+                        <p class="text-sm text-stone-500 z-10 relative">校園植物生長紀錄...</p>
+                    </div>
+                    <!-- Code Snippet -->
+                    <div class="bg-slate-800 rounded-lg p-3 text-xs text-slate-300 font-mono relative group/code">
+                        <button onclick="copyToClipboard('code3')" class="absolute top-2 right-2 opacity-0 group-hover/code:opacity-100 bg-white/20 hover:bg-white/40 text-white px-2 py-1 rounded transition">複製</button>
+                        <code id="code3" class="break-all">
+&lt;i class="fa-solid fa-leaf absolute top-4 right-4 text-emerald-200 opacity-50 text-6xl rotate-12 pointer-events-none"&gt;&lt;/i&gt;
+                        </code>
+                    </div>
+                </div>
+
+                <!-- 範本 4: 流程暗示 (Flow Hint) -->
+                <div class="space-y-3">
+                    <div class="text-sm font-bold text-slate-500 flex justify-between">
+                        <span>04. 流程暗示卡</span>
+                        <span class="text-xs font-normal bg-slate-200 px-2 py-0.5 rounded">步驟/導引</span>
+                    </div>
+                    <!-- Component Display -->
+                    <div class="relative border-2 border-dashed border-slate-200 rounded-lg p-6 h-40 flex flex-col justify-center bg-white">
+                        <i class="fa-solid fa-arrow-right absolute right-4 top-1/2 -translate-y-1/2 text-slate-200 text-4xl pointer-events-none"></i>
+                        <h4 class="font-bold text-slate-700">步驟 1 完成</h4>
+                        <p class="text-sm text-slate-500 mt-1">請點擊下方按鈕繼續...</p>
+                    </div>
+                    <!-- Code Snippet -->
+                    <div class="bg-slate-800 rounded-lg p-3 text-xs text-slate-300 font-mono relative group/code">
+                        <button onclick="copyToClipboard('code4')" class="absolute top-2 right-2 opacity-0 group-hover/code:opacity-100 bg-white/20 hover:bg-white/40 text-white px-2 py-1 rounded transition">複製</button>
+                        <code id="code4" class="break-all">
+&lt;i class="fa-solid fa-arrow-right absolute right-4 top-1/2 -translate-y-1/2 text-slate-200 text-4xl pointer-events-none"&gt;&lt;/i&gt;
+                        </code>
+                    </div>
+                </div>
+
+                <!-- 範本 5: 科技概念 (Tech Concept) -->
+                <div class="space-y-3">
+                    <div class="text-sm font-bold text-slate-500 flex justify-between">
+                        <span>05. 科技/抽象概念</span>
+                        <span class="text-xs font-normal bg-slate-200 px-2 py-0.5 rounded">資訊/系統</span>
+                    </div>
+                    <!-- Component Display -->
+                    <div class="relative bg-slate-900 text-white rounded-xl p-6 overflow-hidden h-40 flex flex-col justify-center">
+                        <i class="fa-solid fa-layer-group absolute -bottom-4 right-4 text-white opacity-10 text-7xl -rotate-6 pointer-events-none"></i>
+                        <h3 class="font-semibold mb-2 text-lg z-10 relative">系統架構圖</h3>
+                        <p class="text-xs opacity-70 z-10 relative">後端資料庫串接說明</p>
+                    </div>
+                    <!-- Code Snippet -->
+                    <div class="bg-slate-800 rounded-lg p-3 text-xs text-slate-300 font-mono relative group/code">
+                        <button onclick="copyToClipboard('code5')" class="absolute top-2 right-2 opacity-0 group-hover/code:opacity-100 bg-white/20 hover:bg-white/40 text-white px-2 py-1 rounded transition">複製</button>
+                        <code id="code5" class="break-all">
+&lt;i class="fa-solid fa-layer-group absolute -bottom-4 right-4 text-white opacity-10 text-7xl -rotate-6 pointer-events-none"&gt;&lt;/i&gt;
+                        </code>
+                    </div>
+                </div>
+
+                <!-- 範本 6: 溫和提示 (Gentle Tip) -->
+                <div class="space-y-3">
+                    <div class="text-sm font-bold text-slate-500 flex justify-between">
+                        <span>06. 溫和提示卡</span>
+                        <span class="text-xs font-normal bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded">補充/提醒</span>
+                    </div>
+                    <!-- Component Display -->
+                    <div class="relative bg-amber-50 rounded-xl p-6 border border-amber-100 overflow-hidden h-40 flex flex-col justify-center">
+                         <!-- 裝飾 -->
+                        <i class="fa-regular fa-note-sticky absolute -top-2 -right-2 text-amber-200 opacity-60 text-8xl rotate-6 pointer-events-none"></i>
+                        
+                        <h3 class="font-bold text-amber-800 mb-1 z-10 relative"><i class="fa-solid fa-circle-info mr-2"></i>小提醒</h3>
+                        <p class="text-sm text-amber-700 z-10 relative">記得在週五前繳交作業。</p>
+                    </div>
+                    <!-- Code Snippet -->
+                    <div class="bg-slate-800 rounded-lg p-3 text-xs text-slate-300 font-mono relative group/code">
+                        <button onclick="copyToClipboard('code6')" class="absolute top-2 right-2 opacity-0 group-hover/code:opacity-100 bg-white/20 hover:bg-white/40 text-white px-2 py-1 rounded transition">複製</button>
+                        <code id="code6" class="break-all">
+&lt;i class="fa-regular fa-note-sticky absolute -top-2 -right-2 text-amber-200 opacity-60 text-8xl rotate-6 pointer-events-none"&gt;&lt;/i&gt;
+                        </code>
+                    </div>
+                </div>
+
+                <!-- 範本 7: 時間管理 (Time/Deadline) -->
+                <div class="space-y-3">
+                    <div class="text-sm font-bold text-slate-500 flex justify-between">
+                        <span>07. 時間/期限卡</span>
+                        <span class="text-xs font-normal bg-blue-100 text-blue-700 px-2 py-0.5 rounded">進度/倒數</span>
+                    </div>
+                    <!-- Component Display -->
+                    <div class="relative bg-blue-50 rounded-xl p-6 border border-blue-100 overflow-hidden h-40 flex flex-col justify-center">
+                         <!-- 裝飾 -->
+                        <i class="fa-solid fa-hourglass-half absolute bottom-0 right-4 text-blue-200 opacity-50 text-7xl rotate-12 pointer-events-none"></i>
+                        
+                        <h3 class="font-bold text-blue-800 mb-1 z-10 relative">距離截止</h3>
+                        <p class="text-3xl font-bold text-blue-600 z-10 relative">3 <span class="text-sm font-normal">天</span></p>
+                    </div>
+                    <!-- Code Snippet -->
+                    <div class="bg-slate-800 rounded-lg p-3 text-xs text-slate-300 font-mono relative group/code">
+                        <button onclick="copyToClipboard('code7')" class="absolute top-2 right-2 opacity-0 group-hover/code:opacity-100 bg-white/20 hover:bg-white/40 text-white px-2 py-1 rounded transition">複製</button>
+                        <code id="code7" class="break-all">
+&lt;i class="fa-solid fa-hourglass-half absolute bottom-0 right-4 text-blue-200 opacity-50 text-7xl rotate-12 pointer-events-none"&gt;&lt;/i&gt;
+                        </code>
+                    </div>
+                </div>
+
+                <!-- 範本 8: 成就解鎖 (Achievement) -->
+                <div class="space-y-3">
+                    <div class="text-sm font-bold text-slate-500 flex justify-between">
+                        <span>08. 成就/獎勵卡</span>
+                        <span class="text-xs font-normal bg-purple-100 text-purple-700 px-2 py-0.5 rounded">獎勵/升級</span>
+                    </div>
+                    <!-- Component Display -->
+                    <div class="relative bg-gradient-to-br from-purple-500 to-indigo-600 text-white rounded-xl p-6 overflow-hidden h-40 flex flex-col justify-center shadow-lg">
+                         <!-- 裝飾 -->
+                        <i class="fa-solid fa-trophy absolute -bottom-4 -right-2 text-white opacity-20 text-8xl -rotate-12 pointer-events-none"></i>
+                        
+                        <div class="z-10 relative">
+                            <span class="bg-white/20 px-2 py-1 rounded text-xs mb-2 inline-block">Level Up!</span>
+                            <h3 class="font-bold text-xl">閱讀大師</h3>
+                            <p class="text-xs opacity-90 mt-1">已閱讀 10 本書籍</p>
+                        </div>
+                    </div>
+                    <!-- Code Snippet -->
+                    <div class="bg-slate-800 rounded-lg p-3 text-xs text-slate-300 font-mono relative group/code">
+                        <button onclick="copyToClipboard('code8')" class="absolute top-2 right-2 opacity-0 group-hover/code:opacity-100 bg-white/20 hover:bg-white/40 text-white px-2 py-1 rounded transition">複製</button>
+                        <code id="code8" class="break-all">
+&lt;i class="fa-solid fa-trophy absolute -bottom-4 -right-2 text-white opacity-20 text-8xl -rotate-12 pointer-events-none"&gt;&lt;/i&gt;
+                        </code>
+                    </div>
+                </div>
+
+                 <!-- 範本 9: 名言引述 (Quote) -->
+                 <div class="space-y-3">
+                    <div class="text-sm font-bold text-slate-500 flex justify-between">
+                        <span>09. 名言/摘要卡</span>
+                        <span class="text-xs font-normal bg-gray-100 text-gray-700 px-2 py-0.5 rounded">重點/金句</span>
+                    </div>
+                    <!-- Component Display -->
+                    <div class="relative bg-white border-l-4 border-indigo-500 rounded-r-xl p-6 shadow-sm overflow-hidden h-40 flex flex-col justify-center">
+                         <!-- 裝飾 -->
+                        <i class="fa-solid fa-quote-right absolute bottom-2 right-4 text-indigo-100 opacity-80 text-8xl pointer-events-none"></i>
+                        
+                        <div class="z-10 relative pr-10">
+                            <p class="text-slate-700 font-medium italic mb-2">"學習不是為了填滿水桶，而是為了點燃火把。"</p>
+                            <span class="text-xs text-slate-400">— 葉慈</span>
+                        </div>
+                    </div>
+                    <!-- Code Snippet -->
+                    <div class="bg-slate-800 rounded-lg p-3 text-xs text-slate-300 font-mono relative group/code">
+                        <button onclick="copyToClipboard('code9')" class="absolute top-2 right-2 opacity-0 group-hover/code:opacity-100 bg-white/20 hover:bg-white/40 text-white px-2 py-1 rounded transition">複製</button>
+                        <code id="code9" class="break-all">
+&lt;i class="fa-solid fa-quote-right absolute bottom-2 right-4 text-indigo-100 opacity-80 text-8xl pointer-events-none"&gt;&lt;/i&gt;
+                        </code>
+                    </div>
+                </div>
+
+                <!-- 範本 10: 數據統計 (Data/Stats) -->
+                <div class="space-y-3">
+                    <div class="text-sm font-bold text-slate-500 flex justify-between">
+                        <span>10. 數據/統計卡</span>
+                        <span class="text-xs font-normal bg-teal-100 text-teal-700 px-2 py-0.5 rounded">儀表/成績</span>
+                    </div>
+                    <!-- Component Display -->
+                    <div class="relative bg-teal-500 text-white rounded-xl p-6 overflow-hidden h-40 flex flex-col justify-center">
+                         <!-- 裝飾 -->
+                        <i class="fa-solid fa-chart-pie absolute -top-4 -right-4 text-white opacity-20 text-9xl pointer-events-none"></i>
+                        
+                        <div class="z-10 relative">
+                            <div class="text-4xl font-bold mb-1">85%</div>
+                            <h3 class="text-sm opacity-90">班級作業繳交率</h3>
+                            <div class="w-full bg-teal-800/30 h-1.5 mt-3 rounded-full overflow-hidden">
+                                <div class="bg-white h-full w-[85%]"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Code Snippet -->
+                    <div class="bg-slate-800 rounded-lg p-3 text-xs text-slate-300 font-mono relative group/code">
+                        <button onclick="copyToClipboard('code10')" class="absolute top-2 right-2 opacity-0 group-hover/code:opacity-100 bg-white/20 hover:bg-white/40 text-white px-2 py-1 rounded transition">複製</button>
+                        <code id="code10" class="break-all">
+&lt;i class="fa-solid fa-chart-pie absolute -top-4 -right-4 text-white opacity-20 text-9xl pointer-events-none"&gt;&lt;/i&gt;
+                        </code>
+                    </div>
+                </div>
+
+                <!-- 範本 11: 資源下載 (Download) -->
+                <div class="space-y-3">
+                    <div class="text-sm font-bold text-slate-500 flex justify-between">
+                        <span>11. 資源下載卡</span>
+                        <span class="text-xs font-normal bg-sky-100 text-sky-700 px-2 py-0.5 rounded">檔案/講義</span>
+                    </div>
+                    <!-- Component Display -->
+                    <div class="relative bg-white border border-slate-200 rounded-xl p-5 h-40 flex flex-col justify-center hover:border-sky-300 transition-colors group cursor-pointer overflow-hidden">
+                         <!-- 裝飾：平常淡，Hover變深 -->
+                        <i class="fa-solid fa-file-arrow-down absolute top-1/2 -translate-y-1/2 right-4 text-slate-100 text-7xl pointer-events-none group-hover:text-sky-50 group-hover:scale-110 transition-all duration-300"></i>
+                        
+                        <div class="z-10 relative">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="bg-sky-100 text-sky-600 text-[10px] px-2 py-0.5 rounded font-bold">PDF</span>
+                                <h3 class="font-bold text-slate-700 group-hover:text-sky-600 transition">課程講義.pdf</h3>
+                            </div>
+                            <p class="text-xs text-slate-400">2.5 MB • 點擊下載</p>
+                        </div>
+                    </div>
+                    <!-- Code Snippet -->
+                    <div class="bg-slate-800 rounded-lg p-3 text-xs text-slate-300 font-mono relative group/code">
+                        <button onclick="copyToClipboard('code11')" class="absolute top-2 right-2 opacity-0 group-hover/code:opacity-100 bg-white/20 hover:bg-white/40 text-white px-2 py-1 rounded transition">複製</button>
+                        <code id="code11" class="break-all">
+&lt;i class="fa-solid fa-file-arrow-down absolute top-1/2 -translate-y-1/2 right-4 text-slate-100 text-7xl pointer-events-none group-hover:text-sky-50"&gt;&lt;/i&gt;
+                        </code>
+                    </div>
+                </div>
+
+                <!-- 範本 12: 重點公告 (Notice) -->
+                <div class="space-y-3">
+                    <div class="text-sm font-bold text-slate-500 flex justify-between">
+                        <span>12. 重點公告卡</span>
+                        <span class="text-xs font-normal bg-orange-100 text-orange-700 px-2 py-0.5 rounded">首頁/通知</span>
+                    </div>
+                    <!-- Component Display -->
+                    <div class="relative bg-gradient-to-r from-orange-500 to-rose-500 text-white rounded-xl p-6 overflow-hidden h-40 flex flex-col justify-center">
+                         <!-- 裝飾 -->
+                        <i class="fa-solid fa-bullhorn absolute -bottom-6 -left-6 text-white opacity-20 text-[100px] rotate-[-20deg] pointer-events-none"></i>
+                        
+                        <div class="z-10 relative ml-8">
+                            <h3 class="font-bold text-lg mb-1">期末考程異動</h3>
+                            <p class="text-sm opacity-90 mb-3">請至教務處網站查看最新考程表。</p>
+                            <span class="text-xs bg-white/20 px-2 py-1 rounded hover:bg-white/30 cursor-pointer">查看詳情 &rarr;</span>
+                        </div>
+                    </div>
+                    <!-- Code Snippet -->
+                    <div class="bg-slate-800 rounded-lg p-3 text-xs text-slate-300 font-mono relative group/code">
+                        <button onclick="copyToClipboard('code12')" class="absolute top-2 right-2 opacity-0 group-hover/code:opacity-100 bg-white/20 hover:bg-white/40 text-white px-2 py-1 rounded transition">複製</button>
+                        <code id="code12" class="break-all">
+&lt;i class="fa-solid fa-bullhorn absolute -bottom-6 -left-6 text-white opacity-20 text-[100px] rotate-[-20deg] pointer-events-none"&gt;&lt;/i&gt;
+                        </code>
+                    </div>
+                </div>
+
+                <!-- 範本 13: 空狀態 (Empty State) -->
+                <div class="space-y-3">
+                    <div class="text-sm font-bold text-slate-500 flex justify-between">
+                        <span>13. 空狀態/無資料</span>
+                        <span class="text-xs font-normal bg-stone-100 text-stone-600 px-2 py-0.5 rounded">狀態/空白</span>
+                    </div>
+                    <!-- Component Display -->
+                    <div class="relative bg-stone-50 border-2 border-dashed border-stone-200 rounded-xl p-6 h-40 flex flex-col items-center justify-center text-center">
+                        <!-- 裝飾 -->
+                        <i class="fa-solid fa-box-open text-stone-300 text-5xl mb-3 pointer-events-none"></i>
+                        <h3 class="font-bold text-stone-500 mb-1">目前沒有作業</h3>
+                        <p class="text-xs text-stone-400">太棒了，您可以休息一下！</p>
+                    </div>
+                    <!-- Code Snippet -->
+                    <div class="bg-slate-800 rounded-lg p-3 text-xs text-slate-300 font-mono relative group/code">
+                        <button onclick="copyToClipboard('code13')" class="absolute top-2 right-2 opacity-0 group-hover/code:opacity-100 bg-white/20 hover:bg-white/40 text-white px-2 py-1 rounded transition">複製</button>
+                        <code id="code13" class="break-all">
+&lt;i class="fa-solid fa-box-open text-stone-300 text-5xl mb-3 pointer-events-none"&gt;&lt;/i&gt;
+                        </code>
+                    </div>
+                </div>
+
+                <!-- 範本 14: 影片單元 (Video) -->
+                <div class="space-y-3">
+                    <div class="text-sm font-bold text-slate-500 flex justify-between">
+                        <span>14. 影片單元卡</span>
+                        <span class="text-xs font-normal bg-rose-100 text-rose-700 px-2 py-0.5 rounded">影音/課程</span>
+                    </div>
+                    <!-- Component Display -->
+                    <div class="relative bg-slate-900 rounded-xl p-6 overflow-hidden h-40 flex flex-col justify-center group cursor-pointer">
+                        <!-- 裝飾：播放按鈕背景 -->
+                        <i class="fa-solid fa-circle-play absolute top-1/2 -translate-y-1/2 right-6 text-rose-500 opacity-20 text-7xl group-hover:opacity-40 group-hover:scale-110 transition-all duration-300 pointer-events-none"></i>
+                        
+                        <div class="z-10 relative">
+                            <span class="bg-rose-600 text-white text-[10px] px-2 py-0.5 rounded font-bold mb-2 inline-block">VIDEO</span>
+                            <h3 class="font-bold text-white text-lg mb-1 group-hover:text-rose-200 transition">第一章：導論</h3>
+                            <p class="text-xs text-slate-400">12:30 • 點擊播放</p>
+                        </div>
+                    </div>
+                    <!-- Code Snippet -->
+                    <div class="bg-slate-800 rounded-lg p-3 text-xs text-slate-300 font-mono relative group/code">
+                        <button onclick="copyToClipboard('code14')" class="absolute top-2 right-2 opacity-0 group-hover/code:opacity-100 bg-white/20 hover:bg-white/40 text-white px-2 py-1 rounded transition">複製</button>
+                        <code id="code14" class="break-all">
+&lt;i class="fa-solid fa-circle-play absolute top-1/2 -translate-y-1/2 right-6 text-rose-500 opacity-20 text-7xl"&gt;&lt;/i&gt;
+                        </code>
+                    </div>
+                </div>
+
+                <!-- 範本 15: 任務完成 (Success) -->
+                <div class="space-y-3">
+                    <div class="text-sm font-bold text-slate-500 flex justify-between">
+                        <span>15. 任務完成卡</span>
+                        <span class="text-xs font-normal bg-green-100 text-green-700 px-2 py-0.5 rounded">成功/回饋</span>
+                    </div>
+                    <!-- Component Display -->
+                    <div class="relative bg-emerald-50 border border-emerald-100 rounded-xl p-6 h-40 flex flex-col justify-center overflow-hidden">
+                        <!-- 裝飾 -->
+                        <i class="fa-solid fa-circle-check absolute -bottom-4 -right-4 text-emerald-200 opacity-60 text-8xl pointer-events-none"></i>
+                        
+                        <div class="z-10 relative">
+                            <h3 class="font-bold text-emerald-800 text-lg mb-1">提交成功！</h3>
+                            <p class="text-sm text-emerald-600">老師已收到您的作業。</p>
+                            <button class="mt-3 text-xs bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-full hover:bg-emerald-200 transition font-bold">查看詳情</button>
+                        </div>
+                    </div>
+                    <!-- Code Snippet -->
+                    <div class="bg-slate-800 rounded-lg p-3 text-xs text-slate-300 font-mono relative group/code">
+                        <button onclick="copyToClipboard('code15')" class="absolute top-2 right-2 opacity-0 group-hover/code:opacity-100 bg-white/20 hover:bg-white/40 text-white px-2 py-1 rounded transition">複製</button>
+                        <code id="code15" class="break-all">
+&lt;i class="fa-solid fa-circle-check absolute -bottom-4 -right-4 text-emerald-200 opacity-60 text-8xl pointer-events-none"&gt;&lt;/i&gt;
+                        </code>
+                    </div>
+                </div>
+
+                <!-- 範本 16: 個人歡迎 (Profile) -->
+                <div class="space-y-3">
+                    <div class="text-sm font-bold text-slate-500 flex justify-between">
+                        <span>16. 個人/歡迎卡</span>
+                        <span class="text-xs font-normal bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded">首頁/個人</span>
+                    </div>
+                    <!-- Component Display -->
+                    <div class="relative bg-indigo-600 text-white rounded-xl p-6 overflow-hidden h-40 flex flex-col justify-center">
+                        <!-- 裝飾 -->
+                        <i class="fa-solid fa-id-card absolute top-1/2 -translate-y-1/2 right-4 text-indigo-400 opacity-30 text-8xl -rotate-12 pointer-events-none"></i>
+                        
+                        <div class="z-10 relative">
+                            <p class="text-indigo-200 text-xs mb-1">Welcome back,</p>
+                            <h3 class="font-bold text-2xl mb-1">王小明 老師</h3>
+                            <p class="text-xs opacity-80">今日有 3 項待辦事項</p>
+                        </div>
+                    </div>
+                    <!-- Code Snippet -->
+                    <div class="bg-slate-800 rounded-lg p-3 text-xs text-slate-300 font-mono relative group/code">
+                        <button onclick="copyToClipboard('code16')" class="absolute top-2 right-2 opacity-0 group-hover/code:opacity-100 bg-white/20 hover:bg-white/40 text-white px-2 py-1 rounded transition">複製</button>
+                        <code id="code16" class="break-all">
+&lt;i class="fa-solid fa-id-card absolute top-1/2 -translate-y-1/2 right-4 text-indigo-400 opacity-30 text-8xl -rotate-12 pointer-events-none"&gt;&lt;/i&gt;
+                        </code>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <hr class="border-slate-200">
+
+        <!-- Section 3: 圖示分類速查表 -->
+        <section class="space-y-8">
+            <h2 class="text-2xl font-bold text-slate-800 mb-6">分類圖示速查表</h2>
+
+            <!-- A. 文藝學習 -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="w-1 h-6 bg-stone-400 rounded-full"></span>
+                    <h3 class="text-lg font-bold text-stone-700">A. 文藝・學習感</h3>
+                    <span class="text-xs bg-stone-100 text-stone-500 px-2 py-1 rounded">適合：作業封面、閱讀任務</span>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    <!-- Icon Item -->
+                    <div class="flex flex-col items-center p-3 rounded hover:bg-stone-50 transition cursor-pointer group" onclick="copyClass('fa-feather')">
+                        <i class="fa-solid fa-feather text-3xl text-stone-400 mb-2 group-hover:scale-110 transition"></i>
+                        <span class="text-xs text-stone-500 font-mono">fa-feather</span>
+                    </div>
+                    <div class="flex flex-col items-center p-3 rounded hover:bg-stone-50 transition cursor-pointer group" onclick="copyClass('fa-book-open')">
+                        <i class="fa-solid fa-book-open text-3xl text-stone-400 mb-2 group-hover:scale-110 transition"></i>
+                        <span class="text-xs text-stone-500 font-mono">fa-book-open</span>
+                    </div>
+                    <div class="flex flex-col items-center p-3 rounded hover:bg-stone-50 transition cursor-pointer group" onclick="copyClass('fa-pen-nib')">
+                        <i class="fa-solid fa-pen-nib text-3xl text-stone-400 mb-2 group-hover:scale-110 transition"></i>
+                        <span class="text-xs text-stone-500 font-mono">fa-pen-nib</span>
+                    </div>
+                    <div class="flex flex-col items-center p-3 rounded hover:bg-stone-50 transition cursor-pointer group" onclick="copyClass('fa-scroll')">
+                        <i class="fa-solid fa-scroll text-3xl text-stone-400 mb-2 group-hover:scale-110 transition"></i>
+                        <span class="text-xs text-stone-500 font-mono">fa-scroll</span>
+                    </div>
+                </div>
+                <p class="mt-4 text-xs text-stone-400 bg-stone-50 p-2 rounded">建議搭配：fa-regular 風格，opacity-40, text-stone-300</p>
+            </div>
+
+            <!-- B. 氣氛點綴 -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="w-1 h-6 bg-amber-300 rounded-full"></span>
+                    <h3 class="text-lg font-bold text-amber-600">B. 氣氛・點綴型</h3>
+                    <span class="text-xs bg-amber-50 text-amber-600 px-2 py-1 rounded">適合：標題旁、獎勵成就</span>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    <!-- 修正：移除 Pro 版 fa-sparkles，改為 fa-circle (PDF 清單內項目) -->
+                    <div class="flex flex-col items-center p-3 rounded hover:bg-amber-50 transition cursor-pointer group" onclick="copyClass('fa-circle')">
+                        <i class="fa-solid fa-circle text-3xl text-amber-400 mb-2 group-hover:scale-110 transition"></i>
+                        <span class="text-xs text-slate-500 font-mono">fa-circle</span>
+                    </div>
+                    <div class="flex flex-col items-center p-3 rounded hover:bg-amber-50 transition cursor-pointer group" onclick="copyClass('fa-star')">
+                        <i class="fa-solid fa-star text-3xl text-amber-400 mb-2 group-hover:scale-110 transition"></i>
+                        <span class="text-xs text-slate-500 font-mono">fa-star</span>
+                    </div>
+                    <div class="flex flex-col items-center p-3 rounded hover:bg-amber-50 transition cursor-pointer group" onclick="copyClass('fa-wand-magic-sparkles')">
+                        <i class="fa-solid fa-wand-magic-sparkles text-3xl text-amber-400 mb-2 group-hover:scale-110 transition"></i>
+                        <span class="text-xs text-slate-500 font-mono">fa-wand-magic...</span>
+                    </div>
+                    <div class="flex flex-col items-center p-3 rounded hover:bg-amber-50 transition cursor-pointer group" onclick="copyClass('fa-diamond')">
+                        <i class="fa-solid fa-diamond text-3xl text-amber-400 mb-2 group-hover:scale-110 transition"></i>
+                        <span class="text-xs text-slate-500 font-mono">fa-diamond</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- C. 自然柔和 -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="w-1 h-6 bg-emerald-300 rounded-full"></span>
+                    <h3 class="text-lg font-bold text-emerald-700">C. 自然・柔和風</h3>
+                    <span class="text-xs bg-emerald-50 text-emerald-600 px-2 py-1 rounded">適合：生活紀錄、低存在感背景</span>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    <div class="flex flex-col items-center p-3 rounded hover:bg-emerald-50 transition cursor-pointer group" onclick="copyClass('fa-leaf')">
+                        <i class="fa-solid fa-leaf text-3xl text-emerald-300 mb-2 group-hover:scale-110 transition"></i>
+                        <span class="text-xs text-slate-500 font-mono">fa-leaf</span>
+                    </div>
+                    <div class="flex flex-col items-center p-3 rounded hover:bg-emerald-50 transition cursor-pointer group" onclick="copyClass('fa-seedling')">
+                        <i class="fa-solid fa-seedling text-3xl text-emerald-300 mb-2 group-hover:scale-110 transition"></i>
+                        <span class="text-xs text-slate-500 font-mono">fa-seedling</span>
+                    </div>
+                    <div class="flex flex-col items-center p-3 rounded hover:bg-emerald-50 transition cursor-pointer group" onclick="copyClass('fa-wind')">
+                        <i class="fa-solid fa-wind text-3xl text-emerald-300 mb-2 group-hover:scale-110 transition"></i>
+                        <span class="text-xs text-slate-500 font-mono">fa-wind</span>
+                    </div>
+                    <div class="flex flex-col items-center p-3 rounded hover:bg-emerald-50 transition cursor-pointer group" onclick="copyClass('fa-cloud')">
+                        <i class="fa-solid fa-cloud text-3xl text-emerald-300 mb-2 group-hover:scale-110 transition"></i>
+                        <span class="text-xs text-slate-500 font-mono">fa-cloud</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- D. 科技結構 -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="w-1 h-6 bg-slate-600 rounded-full"></span>
+                    <h3 class="text-lg font-bold text-slate-700">D. 科技・結構感</h3>
+                    <span class="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded">適合：資訊課、系統說明</span>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    <div class="flex flex-col items-center p-3 rounded hover:bg-slate-50 transition cursor-pointer group" onclick="copyClass('fa-layer-group')">
+                        <i class="fa-solid fa-layer-group text-3xl text-slate-500 mb-2 group-hover:scale-110 transition"></i>
+                        <span class="text-xs text-slate-500 font-mono">fa-layer-group</span>
+                    </div>
+                    <div class="flex flex-col items-center p-3 rounded hover:bg-slate-50 transition cursor-pointer group" onclick="copyClass('fa-gear')">
+                        <i class="fa-solid fa-gear text-3xl text-slate-500 mb-2 group-hover:scale-110 transition"></i>
+                        <span class="text-xs text-slate-500 font-mono">fa-gear</span>
+                    </div>
+                    <div class="flex flex-col items-center p-3 rounded hover:bg-slate-50 transition cursor-pointer group" onclick="copyClass('fa-brain')">
+                        <i class="fa-solid fa-brain text-3xl text-slate-500 mb-2 group-hover:scale-110 transition"></i>
+                        <span class="text-xs text-slate-500 font-mono">fa-brain</span>
+                    </div>
+                    <div class="flex flex-col items-center p-3 rounded hover:bg-slate-50 transition cursor-pointer group" onclick="copyClass('fa-lightbulb')">
+                        <i class="fa-solid fa-lightbulb text-3xl text-slate-500 mb-2 group-hover:scale-110 transition"></i>
+                        <span class="text-xs text-slate-500 font-mono">fa-lightbulb</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- E. 溫和提示 (新增) -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="w-1 h-6 bg-yellow-400 rounded-full"></span>
+                    <h3 class="text-lg font-bold text-yellow-700">E. 溫和提示・說明感</h3>
+                    <span class="text-xs bg-yellow-100 text-yellow-600 px-2 py-1 rounded">適合：補充知識、小提醒</span>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    <div class="flex flex-col items-center p-3 rounded hover:bg-yellow-50 transition cursor-pointer group" onclick="copyClass('fa-circle-info')">
+                        <i class="fa-solid fa-circle-info text-3xl text-yellow-400 mb-2 group-hover:scale-110 transition"></i>
+                        <span class="text-xs text-slate-500 font-mono">fa-circle-info</span>
+                    </div>
+                    <div class="flex flex-col items-center p-3 rounded hover:bg-yellow-50 transition cursor-pointer group" onclick="copyClass('fa-circle-question')">
+                        <i class="fa-solid fa-circle-question text-3xl text-yellow-400 mb-2 group-hover:scale-110 transition"></i>
+                        <span class="text-xs text-slate-500 font-mono">fa-circle-ques...</span>
+                    </div>
+                    <div class="flex flex-col items-center p-3 rounded hover:bg-yellow-50 transition cursor-pointer group" onclick="copyClass('fa-comment-dots')">
+                        <i class="fa-solid fa-comment-dots text-3xl text-yellow-400 mb-2 group-hover:scale-110 transition"></i>
+                        <span class="text-xs text-slate-500 font-mono">fa-comment-dots</span>
+                    </div>
+                    <div class="flex flex-col items-center p-3 rounded hover:bg-yellow-50 transition cursor-pointer group" onclick="copyClass('fa-note-sticky')">
+                        <i class="fa-solid fa-note-sticky text-3xl text-yellow-400 mb-2 group-hover:scale-110 transition"></i>
+                        <span class="text-xs text-slate-500 font-mono">fa-note-sticky</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- F. 時間管理 (新增) -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="w-1 h-6 bg-blue-400 rounded-full"></span>
+                    <h3 class="text-lg font-bold text-blue-700">F. 時間・管理感</h3>
+                    <span class="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded">適合：期限、進度</span>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    <div class="flex flex-col items-center p-3 rounded hover:bg-blue-50 transition cursor-pointer group" onclick="copyClass('fa-clock')">
+                        <i class="fa-solid fa-clock text-3xl text-blue-400 mb-2 group-hover:scale-110 transition"></i>
+                        <span class="text-xs text-slate-500 font-mono">fa-clock</span>
+                    </div>
+                    <div class="flex flex-col items-center p-3 rounded hover:bg-blue-50 transition cursor-pointer group" onclick="copyClass('fa-calendar-days')">
+                        <i class="fa-solid fa-calendar-days text-3xl text-blue-400 mb-2 group-hover:scale-110 transition"></i>
+                        <span class="text-xs text-slate-500 font-mono">fa-calendar-days</span>
+                    </div>
+                    <div class="flex flex-col items-center p-3 rounded hover:bg-blue-50 transition cursor-pointer group" onclick="copyClass('fa-hourglass-half')">
+                        <i class="fa-solid fa-hourglass-half text-3xl text-blue-400 mb-2 group-hover:scale-110 transition"></i>
+                        <span class="text-xs text-slate-500 font-mono">fa-hourglass...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- G. 成就獎勵 (新增) -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="w-1 h-6 bg-purple-400 rounded-full"></span>
+                    <h3 class="text-lg font-bold text-purple-700">G. 成就・獎勵感</h3>
+                    <span class="text-xs bg-purple-100 text-purple-600 px-2 py-1 rounded">適合：等級、徽章</span>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    <div class="flex flex-col items-center p-3 rounded hover:bg-purple-50 transition cursor-pointer group" onclick="copyClass('fa-trophy')">
+                        <i class="fa-solid fa-trophy text-3xl text-purple-400 mb-2 group-hover:scale-110 transition"></i>
+                        <span class="text-xs text-slate-500 font-mono">fa-trophy</span>
+                    </div>
+                    <div class="flex flex-col items-center p-3 rounded hover:bg-purple-50 transition cursor-pointer group" onclick="copyClass('fa-medal')">
+                        <i class="fa-solid fa-medal text-3xl text-purple-400 mb-2 group-hover:scale-110 transition"></i>
+                        <span class="text-xs text-slate-500 font-mono">fa-medal</span>
+                    </div>
+                    <div class="flex flex-col items-center p-3 rounded hover:bg-purple-50 transition cursor-pointer group" onclick="copyClass('fa-crown')">
+                        <i class="fa-solid fa-crown text-3xl text-purple-400 mb-2 group-hover:scale-110 transition"></i>
+                        <span class="text-xs text-slate-500 font-mono">fa-crown</span>
+                    </div>
+                    <div class="flex flex-col items-center p-3 rounded hover:bg-purple-50 transition cursor-pointer group" onclick="copyClass('fa-award')">
+                        <i class="fa-solid fa-award text-3xl text-purple-400 mb-2 group-hover:scale-110 transition"></i>
+                        <span class="text-xs text-slate-500 font-mono">fa-award</span>
+                    </div>
+                </div>
+            </div>
+
+             <!-- H. 數據圖表 (新增) -->
+             <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="w-1 h-6 bg-teal-400 rounded-full"></span>
+                    <h3 class="text-lg font-bold text-teal-700">H. 數據・統計感</h3>
+                    <span class="text-xs bg-teal-100 text-teal-600 px-2 py-1 rounded">適合：數據、分析</span>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    <div class="flex flex-col items-center p-3 rounded hover:bg-teal-50 transition cursor-pointer group" onclick="copyClass('fa-chart-pie')">
+                        <i class="fa-solid fa-chart-pie text-3xl text-teal-400 mb-2 group-hover:scale-110 transition"></i>
+                        <span class="text-xs text-slate-500 font-mono">fa-chart-pie</span>
+                    </div>
+                    <div class="flex flex-col items-center p-3 rounded hover:bg-teal-50 transition cursor-pointer group" onclick="copyClass('fa-chart-simple')">
+                        <i class="fa-solid fa-chart-simple text-3xl text-teal-400 mb-2 group-hover:scale-110 transition"></i>
+                        <span class="text-xs text-slate-500 font-mono">fa-chart-simple</span>
+                    </div>
+                    <div class="flex flex-col items-center p-3 rounded hover:bg-teal-50 transition cursor-pointer group" onclick="copyClass('fa-chart-line')">
+                        <i class="fa-solid fa-chart-line text-3xl text-teal-400 mb-2 group-hover:scale-110 transition"></i>
+                        <span class="text-xs text-slate-500 font-mono">fa-chart-line</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- I. 溝通互動 (新增) -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="w-1 h-6 bg-rose-400 rounded-full"></span>
+                    <h3 class="text-lg font-bold text-rose-700">I. 溝通・互動感</h3>
+                    <span class="text-xs bg-rose-100 text-rose-600 px-2 py-1 rounded">適合：公告、對話</span>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    <div class="flex flex-col items-center p-3 rounded hover:bg-rose-50 transition cursor-pointer group" onclick="copyClass('fa-quote-right')">
+                        <i class="fa-solid fa-quote-right text-3xl text-rose-400 mb-2 group-hover:scale-110 transition"></i>
+                        <span class="text-xs text-slate-500 font-mono">fa-quote-right</span>
+                    </div>
+                    <div class="flex flex-col items-center p-3 rounded hover:bg-rose-50 transition cursor-pointer group" onclick="copyClass('fa-bullhorn')">
+                        <i class="fa-solid fa-bullhorn text-3xl text-rose-400 mb-2 group-hover:scale-110 transition"></i>
+                        <span class="text-xs text-slate-500 font-mono">fa-bullhorn</span>
+                    </div>
+                     <div class="flex flex-col items-center p-3 rounded hover:bg-rose-50 transition cursor-pointer group" onclick="copyClass('fa-comments')">
+                        <i class="fa-solid fa-comments text-3xl text-rose-400 mb-2 group-hover:scale-110 transition"></i>
+                        <span class="text-xs text-slate-500 font-mono">fa-comments</span>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-4 py-2 rounded-full shadow-lg text-sm opacity-0 transition-opacity duration-300 pointer-events-none z-50">
+        已複製到剪貼簿！
+    </div>
+
+    <script>
+        // 通用複製功能，包含錯誤回退機制
+        function copyText(text) {
+            // 嘗試使用現代 API
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showToast();
+                }).catch(err => {
+                    console.warn('Clipboard API failed, trying execCommand fallback:', err);
+                    fallbackCopy(text);
+                });
+            } else {
+                // 若不支援 Clipboard API，直接使用回退方案
+                fallbackCopy(text);
+            }
+        }
+
+        // 回退複製機制：使用 textarea 與 execCommand
+        function fallbackCopy(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            
+            // 確保 textarea 不會影響頁面佈局
+            textArea.style.position = "fixed";
+            textArea.style.left = "-9999px";
+            textArea.style.top = "0";
+            document.body.appendChild(textArea);
+            
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    showToast();
+                } else {
+                    console.error('Fallback copy failed.');
+                }
+            } catch (err) {
+                console.error('Fallback copy error:', err);
+            }
+            
+            document.body.removeChild(textArea);
+        }
+
+        function copyToClipboard(elementId) {
+            const code = document.getElementById(elementId).innerText.trim();
+            const toast = document.getElementById('toast');
+            toast.innerText = '已複製到剪貼簿！';
+            copyText(code);
+        }
+
+        function copyClass(className) {
+            const toast = document.getElementById('toast');
+            toast.innerText = `已複製 Class: ${className}`;
+            copyText(className);
+        }
+
+        function showToast() {
+            const toast = document.getElementById('toast');
+            toast.classList.remove('opacity-0');
+            setTimeout(() => {
+                toast.classList.add('opacity-0');
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
